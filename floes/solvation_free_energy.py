@@ -24,8 +24,8 @@ ofs: Output file
 """
 
 # *************USER SETTING**************
-yank_iteration_per_chunk = 5
-chunks = 2
+yank_iteration_per_chunk = 1000
+chunks = 1
 # ***************************************
 
 cube_list = []
@@ -122,8 +122,8 @@ for i in range(0, chunks):
     else:
         solvationfe.promote_parameter('rerun', promoted_name='rerun' + str(i), default=True)
 
-    # if i == (chunks - 1):
-    #     solvationfe.promote_parameter('analyze', promoted_name='analyze' + str(i), default=True)
+    if i == (chunks - 1):
+        solvationfe.promote_parameter('analyze', promoted_name='analyze' + str(i), default=True)
 
     job.add_cube(solvationfe)
     cube_list.append(solvationfe)
