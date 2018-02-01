@@ -52,7 +52,7 @@ cd openmm_orion
 #Create a new local conda environment and install dependencies
 conda create -n openmmorion python=3.5
 source activate openmmorion
-conda install -c omnia -c omnia/label/dev -c mobleylab -c OpenEye/label/Orion -c conda-forge openmm==7.1.1 openmoltools==0.8.1 ambermini==16.16.0 parmed==2.7.3 pdbfixer==1.4 openforcefield==0.0.2 smirff99frosst==1.0.5 alchemy==1.2.3 yank==0.18.0 oeommtools pymbar==3.0.3 networkx==1.11 
+conda install -c omnia -c omnia/label/dev -c mobleylab -c OpenEye/label/Orion -c conda-forge openmm==7.1.1 openmoltools==0.8.1 ambermini==16.16.0 parmed==2.7.3 pdbfixer==1.4 openforcefield==0.0.2 smirff99frosst==1.0.5 alchemy==1.2.3 yank==0.20.0 cerberus==1.1 oeommtools pymbar==3.0.3 networkx==1.11 
 
 #Install the OpenEye-floe package and toolkits
 pip install -i https://pypi.anaconda.org/OpenEye/simple OpenEye-toolkits

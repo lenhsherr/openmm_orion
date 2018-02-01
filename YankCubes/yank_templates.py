@@ -12,13 +12,23 @@ options:
   anisotropic_dispersion_cutoff: auto
   resume_simulation: {resume_sim}
   resume_setup: {resume_sim}
-  checkpoint_interval: 1
+
+solvents:
+  solvent:
+    nonbonded_method: PME
+    nonbonded_cutoff: 9*angstroms
+    clearance: 8*angstroms
+  vacuum:
+    nonbonded_method: NoCutoff    
 
 systems:
   solvation-system:
     phase1_path: [{solvated_pdb_fn}, {solvated_xml_fn}]
     phase2_path: [{solute_pdb_fn}, {solute_xml_fn}]
-
+    solvent1: solvent
+    solvent2: vacuum
+    solvent_dsl: resname {solvent_dsl}
+    
 protocols:
   solvation-protocol:
     solvent1:

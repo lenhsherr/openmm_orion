@@ -126,6 +126,13 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
                 solute_structure = solvated_structure.split()[0][0]
                 solute_structure.box = None
 
+                solvent_res_names = set()
+                for res in solvated_structure.residues:
+                    solvent_res_names.add(res.name)
+                solvent_res_names.remove(solute_structure.residues[0].name)
+
+                solvent_str_names = ' '.join(solvent_res_names)
+
                 # Set the ligand title
                 solute.SetTitle(solvated_system.GetTitle())
 
@@ -190,7 +197,8 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
                                                  solvated_pdb_fn=solvated_structure_fn,
                                                  solvated_xml_fn=solvated_omm_sys_serialized_fn,
                                                  solute_pdb_fn=solute_structure_fn,
-                                                 solute_xml_fn=solute_omm_sys_serialized_fn))
+                                                 solute_xml_fn=solute_omm_sys_serialized_fn,
+                                                 solvent_dsl=solvent_str_names))
 
                 # Run Yank
                 yaml_builder.run_experiments()
