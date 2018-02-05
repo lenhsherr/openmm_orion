@@ -12,6 +12,7 @@ options:
   anisotropic_dispersion_cutoff: auto
   resume_simulation: {resume_sim}
   resume_setup: {resume_sim}
+  hydrogen_mass: {hydrogen_mass:f}*amu
 
 solvents:
   solvent:

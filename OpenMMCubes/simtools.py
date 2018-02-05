@@ -35,7 +35,11 @@ def simulation(mdData, **opt):
     box = mdData.box
 
     # Time step in ps
-    stepLen = 0.002 * unit.picoseconds
+    if opt['hmr']:
+        stepLen = 0.004 * unit.picoseconds
+        opt['Logger'].info("Hydrogen Mass reduction is On")
+    else:
+        stepLen = 0.002 * unit.picoseconds
 
     # Centering the system to the OpenMM Unit Cell
     if opt['center'] and box is not None:
@@ -59,11 +63,11 @@ def simulation(mdData, **opt):
         system = structure.createSystem(nonbondedMethod=eval("app.%s" % opt['nonbondedMethod']),
                                         nonbondedCutoff=opt['nonbondedCutoff']*unit.angstroms,
                                         constraints=eval("app.%s" % opt['constraints']),
-                                        removeCMMotion=False)
+                                        removeCMMotion=False, hydrogenMass=4*unit.amu if opt['hmr'] else None)
     else:  # Vacuum
         system = structure.createSystem(nonbondedMethod=app.NoCutoff,
                                         constraints=eval("app.%s" % opt['constraints']),
-                                        removeCMMotion=False)
+                                        removeCMMotion=False, hydrogenMass=4*unit.amu if opt['hmr'] else None)
 
     # OpenMM Integrator
     integrator = openmm.LangevinIntegrator(opt['temperature']*unit.kelvin, 1/unit.picoseconds, stepLen)
