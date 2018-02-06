@@ -29,10 +29,10 @@ prod.promote_parameter('pressure', promoted_name='pressure', default=1.0,
                        description='Selected pressure in atm')
 
 # Trajectory and logging info frequency intervals
-prod.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=1000,
-                       description='Trajectory saving interval')
-prod.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=10000,
-                       description='Reporter saving interval')
+prod.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=0.5,
+                       description='Trajectory saving interval in ps')
+prod.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=1.0,
+                       description='Reporter saving interval in ps')
 
 prod.promote_parameter('tar', promoted_name='tar', default=True,
                        description='Compress the output files')

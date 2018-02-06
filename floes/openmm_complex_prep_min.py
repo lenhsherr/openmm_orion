@@ -51,7 +51,7 @@ complx = ComplexPrep("Complex")
 # solvate = HydrationCube("Hydration")
 
 solvate = SolvationCube("Hydration")
-solvate.promote_parameter('density', promoted_name='density', default=1.25,
+solvate.promote_parameter('density', promoted_name='density', default=1.0,
                           description="Solution density in g/ml")
 solvate.promote_parameter('close_solvent', promoted_name='close_solvent', default=True,
                           description='The solvent molecules will be placed very close to the solute')

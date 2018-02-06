@@ -73,10 +73,10 @@ warmup.promote_parameter('time', promoted_name='warm_psec', default=100.0,
 warmup.promote_parameter('restraints', promoted_name='w_restraints', default="noh (ligand or protein)",
                          description='Select mask to apply restarints')
 warmup.promote_parameter('restraintWt', promoted_name='w_restraintWt', default=2.0, description='Restraint weight')
-warmup.promote_parameter('trajectory_interval', promoted_name='w_trajectory_interval', default=1000,
-                         description='Trajectory saving interval')
-warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval', default=10000,
-                         description='Reporter saving interval')
+warmup.promote_parameter('trajectory_interval', promoted_name='w_trajectory_interval', default=0.5,
+                         description='Trajectory saving interval in ps')
+warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval', default=1.0,
+                         description='Reporter saving interval in ps')
 warmup.promote_parameter('outfname', promoted_name='w_outfname', default='warmup',
                          description='Equilibration suffix name')
 
@@ -92,10 +92,10 @@ equil1.promote_parameter('time', promoted_name='eq1_psec', default=100.0,
 equil1.promote_parameter('restraints', promoted_name='eq1_restraints', default="noh (ligand or protein)",
                          description='Select mask to apply restarints')
 equil1.promote_parameter('restraintWt', promoted_name='eq1_restraintWt', default=2.0, description='Restraint weight')
-equil1.promote_parameter('trajectory_interval', promoted_name='eq1_trajectory_interval', default=1000,
-                         description='Trajectory saving interval')
-equil1.promote_parameter('reporter_interval', promoted_name='eq1_reporter_interval', default=10000,
-                         description='Reporter saving interval')
+equil1.promote_parameter('trajectory_interval', promoted_name='eq1_trajectory_interval', default=0.5,
+                         description='Trajectory saving interval in ps')
+equil1.promote_parameter('reporter_interval', promoted_name='eq1_reporter_interval', default=1.0,
+                         description='Reporter saving interval in ps')
 equil1.promote_parameter('outfname', promoted_name='eq1_outfname', default='equil1',
                          description='Equilibration suffix name')
 
@@ -107,10 +107,10 @@ equil2.promote_parameter('restraints', promoted_name='eq2_restraints', default="
                          description='Select mask to apply restarints')
 equil2.promote_parameter('restraintWt', promoted_name='eq2_restraintWt', default=0.5,
                          description='Restraint weight')
-equil2.promote_parameter('trajectory_interval', promoted_name='eq2_trajectory_interval', default=1000,
-                         description='Trajectory saving interval')
-equil2.promote_parameter('reporter_interval', promoted_name='eq2_reporter_interval', default=10000,
-                         description='Reporter saving interval')
+equil2.promote_parameter('trajectory_interval', promoted_name='eq2_trajectory_interval', default=0.5,
+                         description='Trajectory saving interval in ps')
+equil2.promote_parameter('reporter_interval', promoted_name='eq2_reporter_interval', default=1.0,
+                         description='Reporter saving interval in ps')
 equil2.promote_parameter('outfname', promoted_name='eq2_outfname', default='equil2',
                          description='Equilibration suffix name')
 
@@ -122,10 +122,10 @@ equil3.promote_parameter('restraints', promoted_name='eq3_restraints', default="
                          description='Select mask to apply restarints')
 equil3.promote_parameter('restraintWt', promoted_name='eq3_restraintWt', default=0.1,
                          description='Restraint weight')
-equil3.promote_parameter('trajectory_interval', promoted_name='eq3_trajectory_interval', default=1000,
-                         description='Trajectory saving interval')
-equil3.promote_parameter('reporter_interval', promoted_name='eq3_reporter_interval', default=10000,
-                         description='Reporter saving interval')
+equil3.promote_parameter('trajectory_interval', promoted_name='eq3_trajectory_interval', default=0.5,
+                         description='Trajectory saving interval in ps')
+equil3.promote_parameter('reporter_interval', promoted_name='eq3_reporter_interval', default=1.0,
+                         description='Reporter saving interval in ps')
 equil3.promote_parameter('outfname', promoted_name='eq3_outfname', default='equil3',
                          description='Equilibration suffix name')
 

@@ -87,10 +87,10 @@ warmup.promote_parameter('restraints', promoted_name='w_restraints', default="no
                          description='Select mask to apply restarints')
 warmup.promote_parameter('restraintWt', promoted_name='w_restraintWt', default=2.0,
                          description='Restraint weight in kcal/(mol A^2')
-warmup.promote_parameter('trajectory_interval', promoted_name='w_trajectory_interval', default=0,
-                         description='Trajectory saving interval')
-warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval', default=0,
-                         description='Reporter saving interval')
+warmup.promote_parameter('trajectory_interval', promoted_name='w_trajectory_interval', default=0.0,
+                         description='Trajectory saving interval in ps')
+warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval', default=0.0,
+                         description='Reporter saving interval in ps')
 warmup.promote_parameter('outfname', promoted_name='w_outfname', default='warmup',
                          description='Equilibration suffix name')
 warmup.promote_parameter('center', promoted_name='center', default=True)
@@ -107,10 +107,10 @@ equil.promote_parameter('restraints', promoted_name='eq_restraints', default="no
                         description='Select mask to apply restraints')
 equil.promote_parameter('restraintWt', promoted_name='eq_restraintWt', default=0.1,
                         description='Restraint weight in kcal/(mol A^2')
-equil.promote_parameter('trajectory_interval', promoted_name='eq_trajectory_interval', default=0,
-                        description='Trajectory saving interval')
-equil.promote_parameter('reporter_interval', promoted_name='eq_reporter_interval', default=0,
-                        description='Reporter saving interval')
+equil.promote_parameter('trajectory_interval', promoted_name='eq_trajectory_interval', default=0.0,
+                        description='Trajectory saving interval in ps')
+equil.promote_parameter('reporter_interval', promoted_name='eq_reporter_interval', default=0.0,
+                        description='Reporter saving interval in ps')
 equil.promote_parameter('outfname', promoted_name='eq_outfname', default='equil',
                         description='Equilibration suffix name')
 equil.promote_parameter('hmr', promoted_name='hmr', default=True,

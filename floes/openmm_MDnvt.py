@@ -39,10 +39,10 @@ nvt.promote_parameter('restraints', promoted_name='restraints', default='noh (li
 nvt.promote_parameter('restraintWt', promoted_name='restraintWt', default=5.0, description='Restraint weight')
 
 # Trajectory and logging info frequency intervals
-nvt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=100,
-                      description='Trajectory saving interval')
-nvt.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=1000,
-                      description='Reporter saving interval')
+nvt.promote_parameter('trajectory_interval', promoted_name='trajectory_interval', default=0.5,
+                      description='Trajectory saving interval in ps')
+nvt.promote_parameter('reporter_interval', promoted_name='reporter_interval', default=1.0,
+                      description='Reporter saving interval in ps')
 
 nvt.promote_parameter('outfname', promoted_name='suffix', default='nvt',
                       description='Equilibration suffix name')

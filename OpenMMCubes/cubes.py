@@ -259,16 +259,16 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
         choices=['DCD', 'NetCDF', 'HDF5'],
         help_text="NetCDF, DCD, HDF5. File type to write trajectory files")
 
-    trajectory_interval = parameter.IntegerParameter(
+    trajectory_interval = parameter.DecimalParameter(
         'trajectory_interval',
-        default=0,
-        help_text="Step interval for trajectory snapshots. If 0 the trajectory"
+        default=0.0,
+        help_text="Time interval between trajectory snapshots in picoseconds. If 0.0 the trajectory"
                   "file will not be generated")
 
-    reporter_interval = parameter.IntegerParameter(
+    reporter_interval = parameter.DecimalParameter(
         'reporter_interval',
-        default=0,
-        help_text="Step interval for reporting data. If 0 the reporter file"
+        default=0.0,
+        help_text="Time interval to reporting data in  picoseconds. If 0.0 the reporter file"
                   "will not be generated")
 
     outfname = parameter.StringParameter(
@@ -454,16 +454,16 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
         choices=['DCD', 'NetCDF', 'HDF5'],
         help_text="NetCDF, DCD, HDF5. File type to write trajectory files")
 
-    trajectory_interval = parameter.IntegerParameter(
+    trajectory_interval = parameter.DecimalParameter(
         'trajectory_interval',
-        default=0,
-        help_text="Step interval for trajectory snapshots. If 0 the trajectory"
+        default=0.0,
+        help_text="Time interval between trajectory snapshots in picoseconds. If 0.0 the trajectory"
                   "file will not be generated")
 
-    reporter_interval = parameter.IntegerParameter(
+    reporter_interval = parameter.DecimalParameter(
         'reporter_interval',
-        default=0,
-        help_text="Step interval for reporting data. If 0 the reporter file"
+        default=0.0,
+        help_text="Time interval to reporting data in picoseconds. If 0.0 the reporter file"
                   "will not be generated")
 
     outfname = parameter.StringParameter(
