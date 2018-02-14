@@ -242,7 +242,6 @@ def simulation(mdData, **opt):
     elif opt['SimType'] == 'min':
 
         # Run a first minimization on the Reference platform
-        opt['Logger'].info("CPU Minimization")
         platform_reference = openmm.Platform.getPlatformByName('Reference')
         integrator_reference = openmm.LangevinIntegrator(opt['temperature'] * unit.kelvin,
                                                          1 / unit.picoseconds, stepLen)

@@ -73,7 +73,7 @@ minimize.promote_parameter('restraints', promoted_name='m_restraints', default="
                            description='Select mask to apply restarints')
 minimize.promote_parameter('restraintWt', promoted_name='m_restraintWt', default=5.0,
                            description='Restraint weight in kcal/(mol A^2')
-minimize.promote_parameter('hmr', promoted_name='hmr', default=True,
+minimize.promote_parameter('hmr', promoted_name='hmr', default=False,
                            description='Enable hydrogen mass reduction')
 
 job.add_cube(minimize)
@@ -94,7 +94,7 @@ warmup.promote_parameter('reporter_interval', promoted_name='w_reporter_interval
 warmup.promote_parameter('outfname', promoted_name='w_outfname', default='warmup',
                          description='Equilibration suffix name')
 warmup.promote_parameter('center', promoted_name='center', default=True)
-warmup.promote_parameter('hmr', promoted_name='hmr', default=True,
+warmup.promote_parameter('hmr', promoted_name='hmr', default=False,
                          description='Enable hydrogen mass reduction')
 job.add_cube(warmup)
 cube_list.append(warmup)
@@ -113,7 +113,7 @@ equil.promote_parameter('reporter_interval', promoted_name='eq_reporter_interval
                         description='Reporter saving interval in ps')
 equil.promote_parameter('outfname', promoted_name='eq_outfname', default='equil',
                         description='Equilibration suffix name')
-equil.promote_parameter('hmr', promoted_name='hmr', default=True,
+equil.promote_parameter('hmr', promoted_name='hmr', default=False,
                         description='Enable hydrogen mass reduction')
 job.add_cube(equil)
 cube_list.append(equil)
@@ -123,7 +123,7 @@ for i in range(0, chunks):
     solvationfe.promote_parameter('iterations', promoted_name='iterations'+str(i),
                                   default=yank_iteration_per_chunk*(i+1))
     solvationfe.promote_parameter('nonbondedCutoff', promoted_name='nonbondedCutoff'+str(i), default=10.0)
-    solvationfe.promote_parameter('hmr', promoted_name='hmr'+str(i), default=True,
+    solvationfe.promote_parameter('hmr', promoted_name='hmr'+str(i), default=False,
                                   description='Enable hydrogen mass reduction')
 
     if i == 0:
@@ -149,7 +149,6 @@ job.add_cube(fail)
 cube_list.append(fail)
 
 for i in range(0, len(cube_list)-2):
-    print(i)
     cube_list[i].success.connect(cube_list[i + 1].intake)
     if i == len(cube_list) - 3:
         cube_list[i].failure.connect(cube_list[i+2].intake)

@@ -8,7 +8,7 @@ from LigPrepCubes.ports import LigandReader
 
 from ComplexPrepCubes.cubes import SolvationCube
 
-job = WorkFloe("ComplexPrepMin")
+job = WorkFloe("Complex Preparation and Minimization")
 
 job.description = """
 Complex Preparation and Minimization Workflow

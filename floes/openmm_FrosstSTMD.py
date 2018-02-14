@@ -7,7 +7,7 @@ from LigPrepCubes.ports import LigandReader
 from LigPrepCubes.cubes import LigChargeCube
 
 
-job = WorkFloe('Merk Frosst MD Protocol')
+job = WorkFloe('Merk Frosst MD Protocol. Short Trajectory MD')
 
 job.description = """
 Set up an OpenMM complex then minimize, warm up and equilibrate a system by using three equilibration stages

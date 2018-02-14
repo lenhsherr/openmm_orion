@@ -48,7 +48,7 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
 
     minimize = parameter.BooleanParameter(
         'minimize',
-        default=False,
+        default=True,
         help_text="Minimize input system")
 
     iterations = parameter.IntegerParameter(

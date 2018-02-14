@@ -5,7 +5,7 @@ from ComplexPrepCubes.port import ProteinReader
 from LigPrepCubes.ports import LigandReader
 from LigPrepCubes.cubes import LigChargeCube
 
-job = WorkFloe("ComplexPrep")
+job = WorkFloe("Complex Preparation")
 
 job.description = """
 Complex Preparation Workflow

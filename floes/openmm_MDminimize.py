@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from floe.api import WorkFloe, OEMolIStreamCube, OEMolOStreamCube
 from OpenMMCubes.cubes import OpenMMminimizeCube
 
-job = WorkFloe("MDminimize")
+job = WorkFloe("Minimization")
 
 job.description = """
 Minimize an OpenMM-ready solvated complex
