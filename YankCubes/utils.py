@@ -83,10 +83,11 @@ def upload(molecule, path):
     with tarfile.open(file_id, mode='w:gz') as archive:
         archive.add(path, arcname='.', recursive=True)
 
-    if in_orion():
-        file_json = upload_file(file_id, file_id, tags="YANK_TMP")
-        file_id = file_json["id"]
+    if in_orion():  # TODO in Orion the restarting is going to fail
+        # file_json = upload_file(file_id, file_id, tags="YANK_TMP")
+        # file_id = file_json["id"]
+        pass
+    else:
+        oechem.OESetSDData(molecule, 'file_id', file_id)
 
-    oechem.OESetSDData(molecule, 'file_id', file_id)
-
-    return
+    return 
