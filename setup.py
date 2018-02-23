@@ -32,10 +32,10 @@ def get_version():
 
 setup(
     name="OpenMMCubes",
-    version='0.2.6',
+    version='0.2.8',
     packages=find_packages(include=['examples'], exclude=['tests*']),
     include_package_data=True,
-    package_data={ 'examples' : find_package_data('examples/data', 'examples')},
+    package_data={'examples' : find_package_data('examples/data', 'examples')},
     author="Christopher Bayly, Gaetano Calabro, Nathan M. Lim, John Chodera, ",
     author_email="bayly@eyesopen.com",
     description='Prepare complex for MD with OpenMM',

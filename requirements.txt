@@ -1,7 +1,8 @@
 # OE Stack
 openeye-toolkits==2017.10.1
 openeye-floe==0.2.181
-
+OpenEye-Big-Storage==0.0.5
+OpenEye-orionclient==0.0.4
 # Dev Stack
 invoke
 pytest

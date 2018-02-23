@@ -4,8 +4,9 @@ from simtk import unit
 import yaml
 from yank.analyze import get_analyzer
 from openeye import oechem
-import tarfile
-from floe.api.orion import in_orion, stream_file, upload_file
+from floe.api.orion import in_orion
+from big_storage import LargeFile
+from OpenMMCubes import utils as pack_utils
 
 
 def analyze_directory(source_directory):
@@ -59,35 +60,26 @@ def analyze_directory(source_directory):
     return DeltaF, dDeltaF, DeltaH, dDeltaH
 
 
-def download(molecule, path):
-    file_id = oechem.OEGetSDData(molecule, 'file_id')
+def upload(molecule, filename):
 
     if in_orion():
-        tar_file = os.path.basename(path) + '.tar.gz'
-        with open(tar_file, mode='w') as archive:
-            for chunk in stream_file(file_id):
-                archive.write(chunk)
+        file_id = LargeFile(filename)
+        packed_file_id = pack_utils.PackageOEMol.encodePyObj(file_id)
+        molecule.SetData(oechem.OEGetTag('file_id'), packed_file_id)
     else:
-        tar_file = file_id
-
-    tar = tarfile.open(tar_file)
-    tar.extractall(path=path)
-    tar.close()
+        oechem.OESetSDData(molecule, 'file_id', filename)
 
     return
 
 
-def upload(molecule, path):
-    file_id = os.path.basename(path) + '.tar.gz'
+def download(molecule):
 
-    with tarfile.open(file_id, mode='w:gz') as archive:
-        archive.add(path, arcname='.', recursive=True)
-
-    if in_orion():  # TODO in Orion the restarting is going to fail
-        # file_json = upload_file(file_id, file_id, tags="YANK_TMP")
-        # file_id = file_json["id"]
-        pass
+    if in_orion():
+        data = molecule.GetData(oechem.OEGetTag('file_id'))
+        file_id = pack_utils.PackageOEMol.decodePyObj(data)
+        filename = file_id.retrieve()
+        file_id.delete()
     else:
-        oechem.OESetSDData(molecule, 'file_id', file_id)
+        filename = oechem.OEGetSDData(molecule, 'file_id')
 
-    return 
+    return filename

@@ -12,6 +12,7 @@ import os
 from YankCubes import utils as yankutils
 from YankCubes.yank_templates import yank_solvation_template, yank_binding_template
 import itertools
+import tarfile
 
 
 class YankSolvationFECube(ParallelOEMolComputeCube):
@@ -118,20 +119,21 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
                 opt.update(new_args)
 
             # Extract the MD data
+            mdData = data_utils.MDData(solvated_system)
+            solvated_structure = mdData.structure
+
+            # Extract the ligand parmed structure
+            solute_structure = solvated_structure.split()[0][0]
+            solute_structure.box = None
+
+            solvent_res_names = set()
+            for res in solvated_structure.residues:
+                solvent_res_names.add(res.name)
+            solvent_res_names.remove(solute_structure.residues[0].name)
+
+            solvent_str_names = ' '.join(solvent_res_names)
+
             if not opt['rerun']:
-                mdData = data_utils.MDData(solvated_system)
-                solvated_structure = mdData.structure
-
-                # Extract the ligand parmed structure
-                solute_structure = solvated_structure.split()[0][0]
-                solute_structure.box = None
-
-                solvent_res_names = set()
-                for res in solvated_structure.residues:
-                    solvent_res_names.add(res.name)
-                solvent_res_names.remove(solute_structure.residues[0].name)
-
-                solvent_str_names = ' '.join(solvent_res_names)
 
                 # Set the ligand title
                 solute.SetTitle(solvated_system.GetTitle())
@@ -160,7 +162,14 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
                 opt['Logger'].info("Output Directory {}".format(output_directory))
 
                 if opt['rerun']:
-                    yankutils.download(solute, output_directory)
+                    filename = yankutils.download(solute)
+
+                    with tarfile.open(filename) as tar:
+                        tar.extractall(path=output_directory)
+                        # os.remove(filename)
+
+                    # Disable minimization if restart is enabled
+                    opt['minimize'] = False
 
                 solvated_structure_fn = os.path.join(output_directory, "solvated.pdb")
                 solute_structure_fn = os.path.join(output_directory, "solute.pdb")
@@ -181,6 +190,24 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
                     solute_f = open(solute_omm_sys_serialized_fn, 'w')
                     solute_f.write(solute_omm_sys_serialized)
                     solute_f.close()
+
+                self.log.warn(yank_solvation_template.format(
+                                                 verbose='yes' if opt['verbose'] else 'no',
+                                                 minimize='yes' if opt['minimize'] else 'no',
+                                                 output_directory=output_directory,
+                                                 timestep=4.0 if opt['hmr'] else 2.0,
+                                                 nsteps_per_iteration=opt['nsteps_per_iteration'],
+                                                 number_iterations=opt['iterations'],
+                                                 temperature=opt['temperature'],
+                                                 pressure=opt['pressure'],
+                                                 resume_sim='yes' if opt['rerun'] else 'no',
+                                                 resume_setup='yes' if opt['rerun'] else 'no',
+                                                 hydrogen_mass=4.0 if opt['hmr'] else 1.0,
+                                                 solvated_pdb_fn=solvated_structure_fn,
+                                                 solvated_xml_fn=solvated_omm_sys_serialized_fn,
+                                                 solute_pdb_fn=solute_structure_fn,
+                                                 solute_xml_fn=solute_omm_sys_serialized_fn,
+                                                 solvent_dsl=solvent_str_names))
 
                 # Build the Yank Experiment
                 yaml_builder = ExperimentBuilder(yank_solvation_template.format(
@@ -204,8 +231,13 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
                 # Run Yank
                 yaml_builder.run_experiments()
 
+                # Tar the temp dir with its content:
+                tar_fn = os.path.basename(output_directory) + '.tar.gz'
+                with tarfile.open(tar_fn, mode='w:gz') as archive:
+                    archive.add(output_directory, arcname='.', recursive=True)
+
                 # Upload file
-                yankutils.upload(solute, output_directory)
+                yankutils.upload(solute, tar_fn)
 
                 if opt['analyze']:
 

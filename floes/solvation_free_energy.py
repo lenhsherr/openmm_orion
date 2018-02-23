@@ -25,7 +25,7 @@ ofs: Output file
 
 # *************USER SETTING**************
 yank_iteration_per_chunk = 1000
-chunks = 1
+chunks = 3
 # ***************************************
 
 cube_list = []
@@ -125,7 +125,6 @@ for i in range(0, chunks):
     solvationfe.promote_parameter('nonbondedCutoff', promoted_name='nonbondedCutoff'+str(i), default=10.0)
     solvationfe.promote_parameter('hmr', promoted_name='hmr'+str(i), default=False,
                                   description='Enable hydrogen mass reduction')
-
     if i == 0:
         solvationfe.promote_parameter('rerun', promoted_name='rerun' + str(i), default=False)
     else:
