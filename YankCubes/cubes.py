@@ -85,7 +85,7 @@ class YankSolvationFECube(ParallelOEMolComputeCube):
     hmr = parameter.BooleanParameter(
         'hmr',
         default=False,
-        description='Hydrogen Mass Reduction')
+        description='Enable/disable Hydrogen Mass Repartitioning')
 
     def begin(self):
         self.opt = vars(self.args)

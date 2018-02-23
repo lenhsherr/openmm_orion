@@ -118,7 +118,7 @@ class OpenMMminimizeCube(ParallelOEMolComputeCube):
     hmr = parameter.BooleanParameter(
         'hmr',
         default=False,
-        description='Hydrogen Mass Reduction')
+        description='Enable/Disable Hydrogen Mass Repartitioning')
 
     def begin(self):
         self.opt = vars(self.args)
@@ -306,7 +306,7 @@ class OpenMMnvtCube(ParallelOEMolComputeCube):
     hmr = parameter.BooleanParameter(
         'hmr',
         default=False,
-        description='Hydrogen Mass Reduction')
+        description='Enable/Disable Hydrogen Mass Repartitioning')
 
     def begin(self):
         self.opt = vars(self.args)
@@ -501,7 +501,7 @@ class OpenMMnptCube(ParallelOEMolComputeCube):
     hmr = parameter.BooleanParameter(
         'hmr',
         default=False,
-        description='Hydrogen Mass Reduction')
+        description='Enable/Disable Hydrogen Mass Repartitioning')
 
     def begin(self):
         self.opt = vars(self.args)

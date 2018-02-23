@@ -37,7 +37,7 @@ def simulation(mdData, **opt):
     # Time step in ps
     if opt['hmr']:
         stepLen = 0.004 * unit.picoseconds
-        opt['Logger'].info("Hydrogen Mass reduction is On")
+        opt['Logger'].info("Hydrogen Mass Repartitioning is On")
     else:
         stepLen = 0.002 * unit.picoseconds
 
@@ -248,27 +248,28 @@ def simulation(mdData, **opt):
         simulation_reference = app.Simulation(topology, system, integrator_reference, platform=platform_reference)
         # Set starting positions and velocities
         simulation_reference.context.setPositions(positions)
+
+        state_reference_start = simulation_reference.context.getState(getEnergy=True)
+
         # Set Box dimensions
         if box is not None:
             simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
+
         simulation_reference.minimizeEnergy(tolerance=1e5*unit.kilojoule_per_mole)
-        state_reference = simulation_reference.context.getState(getPositions=True)
+        state_reference_end = simulation_reference.context.getState(getPositions=True)
 
         # Start minimization on the selected platform
         opt['Logger'].info('Minimization steps: {steps}'.format(**opt))
 
         # Set positions after minimization on the Reference Platform
-        simulation.context.setPositions(state_reference.getPositions())
-
-        state = simulation.context.getState(getEnergy=True)
-
-        print('Initial energy = {}'.format(state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
-              file=printfile)
+        simulation.context.setPositions(state_reference_end.getPositions())
 
         simulation.minimizeEnergy(maxIterations=opt['steps'])
 
         state = simulation.context.getState(getPositions=True, getEnergy=True)
-        print('Minimized energy = {}'.format(state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
+        print('Initial Energy = {} \n Minimized energy = {}'.format(
+            state_reference_start.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole),
+            state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
               file=printfile)
 
     # OpenMM Quantity object
