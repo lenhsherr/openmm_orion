@@ -25,7 +25,7 @@ ofs: Output file
 
 # *************USER SETTING**************
 yank_iteration_per_chunk = 1000
-chunks = 5
+chunks = 1
 # ***************************************
 
 cube_list = []
