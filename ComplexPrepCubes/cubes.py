@@ -139,7 +139,7 @@ class SolvationCube(ParallelOEMolComputeCube):
     
     close_solvent = parameter.BooleanParameter(
         'close_solvent',
-        default=False,
+        default=True,
         help_text="If Checked/True solvent molecules will be placed very close to the solute")
 
     salt = parameter.StringParameter(

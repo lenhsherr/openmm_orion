@@ -62,11 +62,6 @@ solvate.promote_parameter("padding_distance", promoted_name="padding_distance", 
                                       "is determined, and a cubic box of size "
                                       "(largest dimension)+2*padding is used")
 
-solvate.promote_parameter("close_solvent", promoted_name="close_solvent", default=True,
-                          description="Solvent molecules will be placed very close to the solute")
-
-
-
 job.add_cube(solvate)
 cube_list.append(solvate)
 
