@@ -6,7 +6,8 @@
                            "parmed==3.0.1", "pdbfixer==1.4", "openforcefield==0.0.2",
                            "smirnoff99frosst=1.0.5", "pyparsing==2.1.1",
                            "alchemy==1.2.3", "yank==0.20.0", "oeommtools",
-			   "pymbar==3.0.3", "packmol=*17.221", "networkx==1.11", "cerberus==1.1"],
+			   "pymbar==3.0.3", "packmol=*17.221", "networkx==1.11",
+			   "cerberus==1.1", "openmmtools==0.14.0"],
  "name": "Orion OpenMM package",
  "version": "0.2.9"
 }

@@ -255,7 +255,7 @@ def simulation(mdData, **opt):
         if box is not None:
             simulation_reference.context.setPeriodicBoxVectors(box[0], box[1], box[2])
 
-        simulation_reference.minimizeEnergy(tolerance=1e5*unit.kilojoule_per_mole)
+        simulation_reference.minimizeEnergy(tolerance=1e4*unit.kilojoule_per_mole)
         state_reference_end = simulation_reference.context.getState(getPositions=True)
 
         # Start minimization on the selected platform
@@ -267,7 +267,7 @@ def simulation(mdData, **opt):
         simulation.minimizeEnergy(maxIterations=opt['steps'])
 
         state = simulation.context.getState(getPositions=True, getEnergy=True)
-        print('Initial Energy = {} \n Minimized energy = {}'.format(
+        print('Initial Energy = {}\nMinimized energy = {}'.format(
             state_reference_start.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole),
             state.getPotentialEnergy().in_units_of(unit.kilocalorie_per_mole)),
               file=printfile)
