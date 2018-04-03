@@ -56,10 +56,17 @@ solvate.promote_parameter("molar_fractions", promoted_name="molar_fractions",
                           default='1.0, 0.0, 0.0, 0.0',
                           description="Comma separated strings of solvent molar fractions")
 solvate.promote_parameter('distance_between_atoms', promoted_name='distance_between_atoms', default=2.5)
+
 solvate.promote_parameter("padding_distance", promoted_name="padding_distance", default=11.0,
                           description="The largest dimension (in A) of the solute (along the x, y, or z axis) "
                                       "is determined, and a cubic box of size "
                                       "(largest dimension)+2*padding is used")
+
+solvate.promote_parameter("close_solvent", promoted_name="close_solvent", default=True,
+                          description="Solvent molecules will be placed very close to the solute")
+
+
+
 job.add_cube(solvate)
 cube_list.append(solvate)
 
@@ -75,6 +82,9 @@ minimize.promote_parameter('restraintWt', promoted_name='m_restraintWt', default
                            description='Restraint weight in kcal/(mol A^2')
 minimize.promote_parameter('hmr', promoted_name='hmr', default=False,
                            description='Hydrogen Mass Repartitioning')
+
+minimize.promote_parameter('platform', promoted_name='platform', default="Reference",
+                           description='Select Reference Platform for the Minimization')
 
 job.add_cube(minimize)
 cube_list.append(minimize)
