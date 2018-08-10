@@ -141,7 +141,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
 
     verbose = parameter.BooleanParameter(
         'verbose',
-        default=True,
+        default=False,
         help_text="Print verbose YANK logging output")
 
     hmr = parameter.BooleanParameter(
@@ -627,7 +627,7 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
     verbose = parameter.BooleanParameter(
         'verbose',
-        default=True,
+        default=False,
         help_text="Print verbose YANK logging output")
 
     hmr = parameter.BooleanParameter(

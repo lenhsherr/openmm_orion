@@ -132,7 +132,7 @@ abfe0.promote_parameter('iterations', promoted_name='iterations',
                         default=1000,
                         description="Total Number of Yank iterations for the entire floe. "
                                     "A Yank iteration is 500 MD steps")
-abfe0.promote_parameter('verbose', promoted_name='verbose', default=True)
+# abfe0.promote_parameter('verbose', promoted_name='verbose', default=True)
 abfe0.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                         description='Temperature (Kelvin)')
 abfe0.promote_parameter('pressure', promoted_name='pressure', default=1.0,
@@ -143,8 +143,10 @@ abfe0.promote_parameter('restraints', promoted_name='restraints',
                         default='boresch',
                         description='Select the restraint types to apply to the ligand during the '
                                     'alchemical decoupling. Choices: harmonic, boresch')
+abfe0.set_parameters(verbose=False)
 abfe0.set_parameters(sampler='repex')
 abfe0.set_parameters(protocol='windows_29')
+abfe0.set_parameters(min_parallel=0)
 
 job.add_cube(abfe0)
 
@@ -271,13 +273,15 @@ cube_list.append(abfe0)
 for i in range(1, number_cubes_binding):
     abfe = YankBindingFECube("ABFE"+str(i), title="YANK ABFE REPEX"+str(i))
     abfe.promote_parameter("iterations", promoted_name="iterations")
-    abfe.promote_parameter("verbose", promoted_name="verbose")
+    # abfe.promote_parameter("verbose", promoted_name="verbose")
     abfe.promote_parameter("temperature", promoted_name="temperature")
     abfe.promote_parameter("pressure", promoted_name="pressure")
     abfe.promote_parameter("restraints", promoted_name="restraints")
     abfe.promote_parameter("hmr", promoted_name="hmr")
+    abfe.set_parameters(verbose=False)
     abfe.set_parameters(sampler='repex')
     abfe.set_parameters(protocol='windows_29')
+    abfe.set_parameters(min_parallel=0)
 
     job.add_cube(abfe)
     cube_list.append(abfe)

@@ -69,39 +69,3 @@ class TestYankBindingFloes(FloeTestCase):
         )
 
         self.assertWorkFloeComplete(workfloe)
-
-    def test_yank_binding_sams_floe(self):
-        workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DIR, "Binding_free_energy_sams_linear.py"),
-            run_timeout=8000,
-            queue_timeout=1200
-        )
-
-        ligand_file = DatasetWrapper.get_dataset(
-            os.path.join(
-                FILE_DIR,
-                "toluene.oeb"
-            )
-        )
-
-        protein_file = DatasetWrapper.get_dataset(
-            os.path.join(
-                FILE_DIR,
-                "lysozyme.pdb"
-            )
-        )
-
-        output_file = OutputDatasetWrapper(extension=".oedb")
-
-        workfloe.start(
-            {
-                "promoted": {
-                    "ligands": ligand_file.identifier,
-                    "protein": protein_file.identifier,
-                    "iterations": 5,
-                    "out": output_file.identifier
-                }
-            }
-        )
-
-        self.assertWorkFloeComplete(workfloe)
