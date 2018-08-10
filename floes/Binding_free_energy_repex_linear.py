@@ -127,7 +127,7 @@ ffComplex.promote_parameter('other_forcefield', promoted_name='other_forcefield'
 job.add_cube(ffComplex)
 
 # First Yank Cube used to build the UI interface
-abfe0 = YankBindingFECube("ABFE0", title="ABFE REPEX 0")
+abfe0 = YankBindingFECube("ABFE0", title="YANK ABFE REPEX 0")
 abfe0.promote_parameter('iterations', promoted_name='iterations',
                         default=1000,
                         description="Total Number of Yank iterations for the entire floe. "
