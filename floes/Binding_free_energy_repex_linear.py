@@ -36,8 +36,8 @@ from LigPrepCubes.cubes import (LigandChargeCube,
 from YankCubes.cubes import (SyncBindingFECube,
                              YankBindingFECube)
 
-from cuberecord import (DataSetWriterCube,
-                        DataSetReaderCube)
+from cuberecord import (DatasetWriterCube,
+                        DatasetReaderCube)
 
 from YankCubes.yank_templates import number_cubes_binding
 
@@ -76,7 +76,7 @@ job.classification = [['BindingFreeEnergy', 'Yank']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
-iligs = DataSetReaderCube("LigandReader", title="Ligand Reader")
+iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
 job.add_cube(iligs)
 
@@ -90,7 +90,7 @@ job.add_cube(ligset)
 
 # Protein Reading cube. The protein prefix parameter is used to select a name for the
 # output system files
-iprot = DataSetReaderCube("ProteinReader", title="Protein Reader")
+iprot = DatasetReaderCube("ProteinReader", title="Protein Reader")
 iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input File',
                         description="Protein file name")
 job.add_cube(iprot)
@@ -286,12 +286,12 @@ for i in range(1, number_cubes_binding):
     job.add_cube(abfe)
     cube_list.append(abfe)
 
-ofs = DataSetWriterCube('ofs', title='Out')
+ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out", description="Data Set Out Name")
 job.add_cube(ofs)
 cube_list.append(ofs)
 
-fail = DataSetWriterCube('fail', title='Failures')
+fail = DatasetWriterCube('fail', title='Failures')
 fail.set_parameters(data_out='fail.oedb')
 job.add_cube(fail)
 cube_list.append(fail)

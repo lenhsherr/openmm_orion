@@ -3,20 +3,14 @@ include README.md
 include requirements.txt
 include env.yaml
 
-recursive-include ComplexPrepCubes *
-recursive-include floes *.py
-recursive-include ForceFieldCubes *
-recursive-include LigPrepCubes *.py
+include ComplexPrepCubes *
+include floes *.py
+include ForceFieldCubes *
+include ForceFieldCubes/ffext/*
+include LigPrepCubes *.py
 recursive-include MDCubes *.py
-recursive-include MDOrion *
-recursive-include ProtPrepCubes *
-recursive-include Standards *
-recursive-include tests *
-recursive-include TrjAnalysisCubes *
-recursive-include YankCubes *.py
-
-
-
-
-
-
+include MDOrion *
+include ProtPrepCubes *
+include Standards *
+include TrjAnalysisCubes *
+include YankCubes *.py

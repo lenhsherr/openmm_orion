@@ -18,8 +18,8 @@
 # or its use.
 
 from floe.api import WorkFloe
-from cuberecord import (DataSetWriterCube,
-                        DataSetReaderCube)
+from cuberecord import (DatasetWriterCube,
+                        DatasetReaderCube)
 from ComplexPrepCubes.cubes import SolvationCube
 from ForceFieldCubes.cubes import ForceFieldCube
 from LigPrepCubes.cubes import (LigandChargeCube,
@@ -62,7 +62,7 @@ job.classification = [['Solvation Free Energy']]
 job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
-iligs = DataSetReaderCube("Ligands", title="Ligand Reader")
+iligs = DatasetReaderCube("Ligands", title="Ligand Reader")
 iligs.promote_parameter("data_in", promoted_name="ligands",
                         title="Ligand Input File",
                         description="Ligand file name")
@@ -170,12 +170,12 @@ for i in range(1, number_cubes_solvation):
     job.add_cube(solvationfe)
     cube_list.append(solvationfe)
 
-ofs = DataSetWriterCube('ofs', title='Out')
+ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out", description="Data Set Out Name")
 job.add_cube(ofs)
 cube_list.append(ofs)
 
-fail = DataSetWriterCube('fail', title='Failures')
+fail = DatasetWriterCube('fail', title='Failures')
 fail.set_parameters(data_out='fail.oedb')
 job.add_cube(fail)
 cube_list.append(fail)
