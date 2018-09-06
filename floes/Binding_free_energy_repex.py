@@ -125,34 +125,10 @@ job.add_cube(ffComplex)
 yank_proxy = YankProxyCube("YankProxy", title="Yank Proxy")
 yank_proxy.promote_parameter('iterations', promoted_name='iterations',
                              default=1000,
-                             description="Total number of Yank iterations")
+                             description="Total number of Yank iterations. Each Yank iteration is 500 MD steps")
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
-<<<<<<< HEAD:floes/Binding_free_energy_repex_linear.py
-abfe0 = YankBindingFECube("ABFE0", title="YANK ABFE REPEX 0")
-abfe0.promote_parameter('iterations', promoted_name='iterations',
-                        default=1000,
-                        description="Total Number of Yank iterations for the entire floe. "
-                                    "A Yank iteration is 500 MD steps")
-# abfe0.promote_parameter('verbose', promoted_name='verbose', default=True)
-abfe0.promote_parameter('temperature', promoted_name='temperature', default=300.0,
-                        description='Temperature (Kelvin)')
-abfe0.promote_parameter('pressure', promoted_name='pressure', default=1.0,
-                        description='Pressure (atm)')
-abfe0.promote_parameter('hmr', promoted_name='hmr', default=False,
-                        description='On enables Hydrogen Mass Repartitioning')
-abfe0.promote_parameter('restraints', promoted_name='restraints',
-                        default='boresch',
-                        description='Select the restraint types to apply to the ligand during the '
-                                    'alchemical decoupling. Choices: harmonic, boresch')
-abfe0.set_parameters(verbose=False)
-abfe0.set_parameters(sampler='repex')
-abfe0.set_parameters(protocol='windows_29')
-abfe0.set_parameters(min_parallel=0)
-
-job.add_cube(abfe0)
-=======
 abfe = YankBindingFECube("YankABFE", title="Yank ABFE REPEX")
 abfe.promote_parameter('iterations', promoted_name='iterations',
                        description="Total Number of Yank iterations for the entire floe. "
@@ -169,13 +145,9 @@ abfe.promote_parameter('restraints', promoted_name='restraints',
                        description='Select the restraint types to apply to the ligand during the '
                                    'alchemical decoupling. Choices: harmonic, boresch')
 abfe.set_parameters(verbose=False)
-# Testing
-abfe.set_parameters(min_parallel=0)
-
 abfe.set_parameters(sampler='repex')
 abfe.set_parameters(protocol='windows_29')
 job.add_cube(abfe)
->>>>>>> Cycle:floes/Binding_free_energy_repex.py
 
 # Minimization
 minComplex = OpenMMminimizeCube('minComplex', title='Complex Minimization')
@@ -292,35 +264,9 @@ job.add_cube(equilLigand)
 
 sync = SyncBindingFECube("SyncCube", title="Unbounded and Bonded Synchronization")
 job.add_cube(sync)
-<<<<<<< HEAD:floes/Binding_free_energy_repex_linear.py
-cube_list.append(sync)
-
-# Add YANK first Cube
-cube_list.append(abfe0)
-
-for i in range(1, number_cubes_binding):
-    abfe = YankBindingFECube("ABFE"+str(i), title="YANK ABFE REPEX"+str(i))
-    abfe.promote_parameter("iterations", promoted_name="iterations")
-    # abfe.promote_parameter("verbose", promoted_name="verbose")
-    abfe.promote_parameter("temperature", promoted_name="temperature")
-    abfe.promote_parameter("pressure", promoted_name="pressure")
-    abfe.promote_parameter("restraints", promoted_name="restraints")
-    abfe.promote_parameter("hmr", promoted_name="hmr")
-    abfe.set_parameters(verbose=False)
-    abfe.set_parameters(sampler='repex')
-    abfe.set_parameters(protocol='windows_29')
-    abfe.set_parameters(min_parallel=0)
-
-    job.add_cube(abfe)
-    cube_list.append(abfe)
-
-ofs = DatasetWriterCube('ofs', title='Out')
-ofs.promote_parameter("data_out", promoted_name="out", description="Data Set Out Name")
-=======
-
 ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out")
->>>>>>> Cycle:floes/Binding_free_energy_repex.py
+
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')

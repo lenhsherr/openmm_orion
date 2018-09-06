@@ -103,13 +103,13 @@ job.add_cube(ff)
 # Add YANK Cube
 yank_proxy = YankProxyCube("YankProxy", title="Yank Proxy")
 yank_proxy.promote_parameter('iterations', promoted_name='iterations', default=1000,
-                             description="Total number of Yank iterations")
+                             description="Total number of Yank iterations. Each Yank iteration is 500 MD steps")
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
 solvationfe = YankSolvationFECube("SovationFE", title="Yank Solvation")
 solvationfe.promote_parameter('iterations', promoted_name='iterations')
-solvationfe.promote_parameter('verbose', promoted_name='verbose', default=True)
+solvationfe.promote_parameter('verbose', promoted_name='verbose', default=False)
 solvationfe.promote_parameter('temperature', promoted_name='temperature', default=300.0,
                               description='Temperature (Kelvin)')
 solvationfe.promote_parameter('pressure', promoted_name='pressure', default=1.0,
