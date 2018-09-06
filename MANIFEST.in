@@ -3,16 +3,8 @@ include README.md
 include requirements.txt
 include env.yaml
 
-include ComplexPrepCubes *
-include floes *.py
-include ForceFieldCubes *
+graft floes
+graft MDCubes
+
+include ForceFieldCubes/*.py
 include ForceFieldCubes/ffext/*
-include LigPrepCubes *.py
-recursive-include MDCubes *.py
-include MDOrion *
-include ProtPrepCubes *
-include Standards *
-include TrjAnalysisCubes *
-include YankCubes *.py
-
-
