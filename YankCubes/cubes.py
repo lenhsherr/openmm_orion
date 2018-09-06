@@ -21,7 +21,7 @@ from floe.api import (ParallelMixin,
 
 from cuberecord import OERecordComputeCube
 
-from cuberecord.ports import RecordInputPort
+from cuberecord.ports import RecordInputPort, RecordOutputPort
 
 from datarecord import (Types,
                         Meta,
@@ -71,10 +71,7 @@ from orionclient.types import File
 from os import environ
 
 from YankCubes.yank_templates import (resources,
-                                      number_cubes_binding,
-                                      number_cubes_solvation)
-
-from math import ceil
+                                      max_cube_running_time)
 
 
 class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
@@ -112,11 +109,6 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
         default=1.0,
         help_text="Pressure (atm)")
 
-    minimize = parameter.BooleanParameter(
-        'minimize',
-        default=True,
-        help_text="Minimize input system")
-
     iterations = parameter.IntegerParameter(
         'iterations',
         default=1000,
@@ -126,7 +118,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
     nsteps_per_iteration = parameter.IntegerParameter(
         'nsteps_per_iteration',
         default=500,
-        help_text="Number of steps per iteration")
+        help_text="Number of MD steps per iteration")
 
     nonbondedCutoff = parameter.DecimalParameter(
         'nonbondedCutoff',
@@ -156,14 +148,10 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
     def process(self, record, port):
 
         try:
-
             self.log.warn(">>>>>>> {} verbose {}".format(self.title, self.opt['verbose']))
             self.log.warn(">>>>>>> {} iterations {}".format(self.title, self.opt['iterations']))
             self.log.warn(">>>>>>> {} pressure {}".format(self.title, self.opt['pressure']))
             self.log.warn(">>>>>>> {} temperature {}".format(self.title, self.opt['temperature']))
-
-            # self.log.warn(">>>>>>> {} min_parallel {}".format(self.title, self.opt['min_parallel']))
-            # self.log.warn(">>>>>>> {} max_parallel {}".format(self.title, self.opt['max_parallel']))
 
             # The copy of the dictionary option as local variable
             # is necessary to avoid filename collisions due to
@@ -191,54 +179,10 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                                                                 getattr(self.args, tmp_default.name),
                                                                 tmp_description)
 
-            if opt['iterations'] <= 0:
-                raise ValueError(
-                    "The number of iterations cannot be a non-negative number: {}".format(opt['iterations']))
-
-            iterations_per_cube = ceil(opt['iterations'] / number_cubes_solvation)
-
-            if not record.has_value(current_iteration_field):
-                record.set_value(current_iteration_field, 0)
-                minimize = True
-                resume_sim = False
-                resume_setup = False
-
-            # Current number of iterations
-            current_iterations = record.get_value(current_iteration_field)
-
-            if current_iterations == opt['iterations']:
-                self.success.emit(record)
-                return
-
-            # Calculate the new number of iterations to run
-            if current_iterations + iterations_per_cube > opt['iterations']:
-                new_iterations = opt['iterations']
-            else:
-                new_iterations = current_iterations + iterations_per_cube
-
-            # Checkpoint interval
-            checkpoint_interval = new_iterations - current_iterations
-
-            self.log.warn(">>>>>>> {} current iterations {}".format(self.title, current_iterations))
-            self.log.warn(">>>>>>> {} iterations per cube {}".format(self.title, iterations_per_cube))
-            self.log.warn(">>>>>>> {} new_iterations {}".format(self.title, new_iterations))
-            self.log.warn(">>>>>>> {} checkpoint_interval {}".format(self.title, checkpoint_interval))
-
             if not record.has_value(Fields.primary_molecule):
                 raise ValueError("Missing the Primary Molecule field")
 
             system = record.get_value(Fields.primary_molecule)
-
-            total_time_per_iteration = resources['k80']['w29']['intercept'] + \
-                                       resources['k80']['w29']['slope'] * system.NumAtoms()
-
-            total_time = total_time_per_iteration * iterations_per_cube
-
-            self.log.warn(">>>>>>> {} Total simulation time per cube ~ {:.4f} hrs".format(self.title, total_time))
-
-            if total_time > 11.0:
-                raise ValueError(
-                    "Total Simulation Time {} per cube is not currently supported in AWS".format(total_time))
 
             if not record.has_value(Fields.title):
                 opt['Logger'].warn("Missing record Title field")
@@ -246,8 +190,46 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
             else:
                 system_title = record.get_value(Fields.title)
 
+            opt['system_title'] = system_title
+
             if not record.has_value(Fields.id):
-                raise ValueError("Missing the Primary Molecule field")
+                raise ValueError("Missing the ID field")
+
+            opt['system_id'] = record.get_value(Fields.id)
+
+            if opt['iterations'] <= 0:
+                raise ValueError("The number of iterations cannot be a non-negative number: {}".format(opt['iterations']))
+
+            if not record.has_value(current_iteration_field):
+                raise ValueError("The current number of iterations has not been defined")
+
+            # Current number of iterations
+            current_iterations = record.get_value(current_iteration_field)
+                
+            if current_iterations == 0:
+                minimize = True
+                resume_sim = False
+                resume_setup = False
+
+            total_time_per_iteration = resources['k80']['w29']['intercept'] + resources['k80']['w29']['slope'] * system.NumAtoms()
+
+            iterations_per_cube = int(max_cube_running_time/total_time_per_iteration)
+            # # TODO DEBUGGING REMOVE NEXT LINE
+            # iterations_per_cube = 5
+
+            # Calculate the new number of iterations to run
+            if current_iterations + iterations_per_cube > opt['iterations']:
+                new_iterations = opt['iterations']
+            else:
+                new_iterations = current_iterations + iterations_per_cube
+                
+            # Checkpoint interval
+            checkpoint_interval = new_iterations - current_iterations
+                        
+            self.log.warn(">>>>>>> {} current iterations {}".format(self.title, current_iterations))
+            self.log.warn(">>>>>>> {} iterations per cube {}".format(self.title, iterations_per_cube))
+            self.log.warn(">>>>>>> {} new_iterations {}".format(self.title, new_iterations))
+            self.log.warn(">>>>>>> {} checkpoint_interval {}".format(self.title, checkpoint_interval))
 
             prot_split, lig_split, water, excipients = oeommutils.split(system, ligand_res_name=opt['ligand_res_name'])
 
@@ -261,12 +243,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                 alchemical_pme_treatment = 'direct-space'
 
             if fchg_lig != 0:
-                raise ValueError("The provided ligand {} is not neutral. Formal charge = {}".format(system_title,
-                                                                                                    fchg_lig))
-
-            opt['system_title'] = system_title
-
-            opt['system_id'] = record.get_value(Fields.id)
+                raise ValueError("The ligand is not neutral: formal charge = {}".format(fchg_lig))
 
             # Update cube simulation parameters with the eventually molecule SD tags
             new_args = {dp.GetTag(): dp.GetValue() for dp in oechem.OEGetSDDataPairs(system) if dp.GetTag() in
@@ -345,7 +322,6 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                     # Enable Yank Restarting
                     resume_sim = True
                     resume_setup = True
-
                 else:
                     with open(solvated_structure_fn, 'w') as f:
                         app.PDBFile.writeFile(solvated_structure.topology, solvated_structure.positions, file=f)
@@ -404,9 +380,9 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
 
                     # Calculate solvation free energy and its error
                     DeltaG_solvation = analysis['free_energy']['free_energy_diff_unit'].\
-                                         in_units_of(unit.kilocalorie_per_mole)/unit.kilocalorie_per_mole
+                                           in_units_of(unit.kilocalorie_per_mole)/unit.kilocalorie_per_mole
                     dDeltaG_solvation = analysis['free_energy']['free_energy_diff_error_unit'].\
-                                          in_units_of(unit.kilocalorie_per_mole)/unit.kilocalorie_per_mole
+                                            in_units_of(unit.kilocalorie_per_mole)/unit.kilocalorie_per_mole
 
                     # Create OE Field to save the Solvation Free Energy in kcal/mol
                     DG_Field = OEField('Solvation FE', Types.Float,
@@ -469,7 +445,6 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                                                           MDRecords.MDSystemRecord(system, mdData.structure),
                                                           log=str_logger,
                                                           trajectory=lf)
-
                 # md_stages.append(md_stage_record)
                 md_stages[-1] = md_stage_record
 
@@ -479,7 +454,6 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
 
                 record.set_value(current_iteration_field, new_iterations)
 
-                # Emit the ligand
                 self.success.emit(record)
 
         except:
@@ -594,11 +568,6 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
         default=1.0,
         help_text="Pressure (atm)")
 
-    minimize = parameter.BooleanParameter(
-        'minimize',
-        default=True,
-        help_text="Minimize input system")
-
     iterations = parameter.IntegerParameter(
         'iterations',
         default=1000,
@@ -608,7 +577,7 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
     nsteps_per_iteration = parameter.IntegerParameter(
         'nsteps_per_iteration',
         default=500,
-        help_text="Number of steps per iteration")
+        help_text="Number of MD steps per iteration")
 
     timestep = parameter.DecimalParameter(
         'timestep',
@@ -638,15 +607,13 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
     sampler = parameter.StringParameter(
         'sampler',
         default='repex',
-        choices=['repex',
-                 'sams'],
-        help_text='Yank Sampling mode: repex Replica Exchange and sams Self-Adjusted Mixture Sampling')
+        choices=['repex', 'sams'],
+        help_text='Yank Sampling mode: REPEX Replica Exchange and SAMS Self-Adjusted Mixture Sampling')
 
     restraints = parameter.StringParameter(
         'restraints',
         default='boresch',
-        choices=['harmonic',
-                 'boresch'],
+        choices=['harmonic', 'boresch'],
         help_text='Select the restraint types to apply to the ligand during the '
                   'alchemical decoupling. Choices: harmonic, boresch')
 
@@ -673,8 +640,6 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
             self.log.warn(">>>>>>> {} iterations {}".format(self.title, self.opt['iterations']))
             self.log.warn(">>>>>>> {} pressure {}".format(self.title, self.opt['pressure']))
             self.log.warn(">>>>>>> {} temperature {}".format(self.title, self.opt['temperature']))
-            # self.log.warn(">>>>>>> {} min_parallel {}".format(self.title, self.opt['min_parallel']))
-            # self.log.warn(">>>>>>> {} max_parallel {}".format(self.title, self.opt['max_parallel']))
 
             # Logger string
             str_logger = '-' * 32 + ' YANK BINDING CUBE PARAMETERS ' + '-' * 32
@@ -695,23 +660,51 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                                                                 getattr(self.args, tmp_default.name),
                                                                 tmp_description)
 
+            if not record.has_value(Fields.primary_molecule):
+                raise ValueError("The Primary Molecule is missing field")
+        
+            complex = record.get_value(Fields.primary_molecule)
+
+            if not record.has_value(Fields.title):
+                opt['Logger'].warn("Missing record Title field")
+                system_title = complex.GetTitle()[0:12]
+            else:
+                system_title = record.get_value(Fields.title)
+
+            opt['system_title'] = system_title
+            
+            if not record.has_value(Fields.id):
+                raise ValueError("Missing the ID field")
+
+            opt['system_id'] = record.get_value(Fields.id)
+
             if opt['iterations'] <= 0:
                 raise ValueError("The number of iterations cannot be a non-negative number: {}".format(opt['iterations']))
 
-            iterations_per_cube = ceil(opt['iterations'] / number_cubes_binding)
-
             if not record.has_value(current_iteration_field):
-                record.set_value(current_iteration_field, 0)
-                minimize = True
-                resume_sim = False
-                resume_setup = False
+                raise ValueError("The current number of iterations has not been defined")
 
             # Current number of iterations
             current_iterations = record.get_value(current_iteration_field)
 
-            if current_iterations == opt['iterations']:
-                self.success.emit(record)
-                return
+            if current_iterations == 0:
+                minimize = True
+                resume_sim = False
+                resume_setup = False
+
+            if opt['sampler'] == 'repex':
+                self.log.warn('REPEX samplig selected')
+                total_time_per_iteration = resources['k80']['w29']['intercept'] + resources['k80']['w29']['slope'] * complex.NumAtoms()
+            elif opt['sampler'] == 'sams':
+                self.log.warn('SAMS samplig selected')
+                total_time_per_iteration = resources['k80']['wsams']['intercept'] + resources['k80']['wsams']['slope'] * complex.NumAtoms()
+            else:
+                raise ValueError("The selected sampling method is not supported: {}".format(opt['sampler']))
+
+            iterations_per_cube = int(max_cube_running_time/total_time_per_iteration)
+
+            # # TODO DEBUGGING REMOVE NEXT LINE
+            # iterations_per_cube = 5
 
             # Calculate the new number of iterations to run
             if current_iterations + iterations_per_cube > opt['iterations']:
@@ -726,29 +719,6 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
             self.log.warn(">>>>>>> {} iterations per cube {}".format(self.title, iterations_per_cube))
             self.log.warn(">>>>>>> {} new_iterations {}".format(self.title, new_iterations))
             self.log.warn(">>>>>>> {} checkpoint_interval {}".format(self.title, checkpoint_interval))
-
-            if not record.has_value(Fields.primary_molecule):
-                raise ValueError("The Primary Molecule is missing field")
-
-            complex = record.get_value(Fields.primary_molecule)
-
-            if opt['sampler'] == 'repex':
-                self.log.warn('REPEX samplig selected')
-                total_time_per_iteration = resources['k80']['w29']['intercept'] + \
-                                           resources['k80']['w29']['slope'] * complex.NumAtoms()
-            elif opt['sampler'] == 'sams':
-                self.log.warn('SAMS samplig selected')
-                total_time_per_iteration = resources['k80']['wsams']['intercept'] + \
-                                           resources['k80']['wsams']['slope'] * complex.NumAtoms()
-            else:
-                raise ValueError("The selected sampling method is not supported: {}".format(opt['sampler']))
-
-            total_time = total_time_per_iteration * iterations_per_cube
-
-            self.log.warn(">>>>>>> {} Total simulation time per cube ~ {:.4f} hrs".format(self.title, total_time))
-
-            if total_time > 11.0:
-                raise ValueError("Total Simulation Time {} per cube is not currently supported in AWS".format(total_time))
 
             # Split the complex in components
             protein_split, ligand_split, water, excipients = oeommutils.split(complex,
@@ -784,19 +754,6 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                     solvent_res_names[i] = "'"+solvent_res_names[i]+"'"
 
             solvent_str_names = ' '.join(solvent_res_names)
-
-            if not record.has_value(Fields.title):
-                opt['Logger'].warn("Missing record Title field")
-                system_title = complex.GetTitle()[0:12]
-            else:
-                system_title = record.get_value(Fields.title)
-
-            if not record.has_value(Fields.id):
-                raise ValueError("Missing the ID field")
-
-            opt['system_title'] = system_title
-
-            opt['system_id'] = record.get_value(Fields.id)
 
             if current_iterations == 0:
                 solvated_ligand_record_field = OEField("ligand_solvated", Types.Record)
@@ -1008,6 +965,69 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
             self.success.emit(record)
 
+        except:
+            # Attach an error message to the molecule that failed
+            self.log.error(traceback.format_exc())
+            # Return failed mol
+            self.failure.emit(record)
+
+        return
+
+
+class YankProxyCube(OERecordComputeCube):
+    version = "0.0.0"
+    title = "YankProxyCube"
+    description = """
+    This cube is used to implement a cycle with the Yank Solvation FE and
+    Yank Binding Cubes.
+    """
+    classification = [["Alchemical free energy calculations"]]
+    tags = [tag for lists in classification for tag in lists]
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 6000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
+
+    iterations = parameter.IntegerParameter(
+        'iterations',
+        default=13,
+        help_text="Total number of iterations")
+
+    cycle_out_port = RecordOutputPort("cycle_out_port")
+    cycle_in_port = RecordInputPort("cycle_in_port")
+
+    def begin(self):
+        self.opt = vars(self.args)
+        self.opt['Logger'] = self.log
+
+    def process(self, record, port):
+
+        current_iteration_field = OEField("current_iterations", Types.Int)
+
+        try:
+            if port == 'intake':
+                record.set_value(current_iteration_field, 0)
+                current_iteration = record.get_value(current_iteration_field)
+                self.opt['Logger'].warn(">>>>>>>>>>> PROXY current iterations {}".format(current_iteration))
+                self.opt['Logger'].warn(">>>>>>>>>>> PROXY max iterations {}".format(self.opt['iterations']))
+                self.opt['Logger'].warn(">>>>>>>>>>> Forwarding to Cycle...")
+                self.cycle_out_port.emit(record)
+            else:  # Cycle Port
+                current_iteration = record.get_value(current_iteration_field)
+
+                self.opt['Logger'].warn(">>>>>>>>>>> PROXY current iterations {}".format(current_iteration))
+                self.opt['Logger'].warn(">>>>>>>>>>> PROXY max iterations {}".format(self.opt['iterations']))
+
+                if current_iteration == self.opt['iterations']:
+                    self.opt['Logger'].warn(">>>>>>>>>>> Finishing...")
+                    self.success.emit(record)
+                else:
+                    self.opt['Logger'].warn(">>>>>>>>>>> Forwarding to Cycle...")
+                    self.cycle_out_port.emit(record)
         except:
             # Attach an error message to the molecule that failed
             self.log.error(traceback.format_exc())

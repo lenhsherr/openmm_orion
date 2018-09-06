@@ -34,33 +34,30 @@ from LigPrepCubes.cubes import (LigandChargeCube,
                                 LigandSetting)
 
 from YankCubes.cubes import (SyncBindingFECube,
-                             YankBindingFECube)
+                             YankBindingFECube,
+                             YankProxyCube)
 
 from cuberecord import (DatasetWriterCube,
                         DatasetReaderCube)
 
-from YankCubes.yank_templates import number_cubes_binding
-
-cube_list = []
-
-job = WorkFloe('Binding Affinity Replica Exchange Linear')
+job = WorkFloe('Binding Affinity Replica Exchange')
 
 job.description = """
-    The Absolute Binding Affinity Free Energy protocol (ABFE) performs Binding Affinity calculations 
-    on a set of provided ligands and related receptor by using YANK Replica Exchange ( http://getyank.org/latest/ ). 
-    The ligands need to have coordinates and correct chemistry. Each ligand can have multiple conformers, 
-    but each conformer will be treated as a different ligand and prepared to run ABFE. 
-    The protein needs to be prepared at MD preparation standard. This includes capping the protein, 
+    The Absolute Binding Affinity Free Energy protocol (ABFE) performs Binding Affinity calculations
+    on a set of provided ligands and related receptor by using YANK Replica Exchange ( http://getyank.org/latest/ ).
+    The ligands need to have coordinates and correct chemistry. Each ligand can have multiple conformers,
+    but each conformer will be treated as a different ligand and prepared to run ABFE.
+    The protein needs to be prepared at MD preparation standard. This includes capping the protein,
     resolve missing atoms in protein residues and resolve missing protein loops. The parametrization of
-    some "known unknown" non standard protein residues is partially supported. Ligands need to be already posed 
-    in the protein binding site. A complex (Bonded State) is formed, solvated and parametrized accordingly 
-    to the selected force fields. In a similar fashion the Unbounded state is also prepared. Minimization, 
+    some "known unknown" non standard protein residues is partially supported. Ligands need to be already posed
+    in the protein binding site. A complex (Bonded State) is formed, solvated and parametrized accordingly
+    to the selected force fields. In a similar fashion the Unbounded state is also prepared. Minimization,
     Warm up (NVT) and Equilibration (NPT) stages are performed an the Bonded and Unbounded states. In order
-    to minimize Molecular Dynamics (MD) failures along these stages, positional harmonic restraints are 
-    applied on the ligand and protein with different force constants. At the end of the equilibration stages 
-    the ABFE calculations are run by YANK with the selected parameters. Calculated Binding Affinities 
-    for each ligand are output with the related floe reports. 
-       
+    to minimize Molecular Dynamics (MD) failures along these stages, positional harmonic restraints are
+    applied on the ligand and protein with different force constants. At the end of the equilibration stages
+    the ABFE calculations are run by YANK with the selected parameters. Calculated Binding Affinities
+    for each ligand are output with the related floe reports.
+    
     Required Input Parameters:
     -----------
     ligands: Dataset of the prepared ligands
@@ -68,8 +65,8 @@ job.description = """
     
     Outputs:
     --------
-    out : Dataset of the solvated systems with the calculated binding free energies and 
-          floe reports
+    out : Dataset of the solvated systems with the calculated binding free energies and
+    floe reports
 """
 
 job.classification = [['BindingFreeEnergy', 'Yank']]
@@ -85,7 +82,7 @@ chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
                             description="Charge the ligand or not", default=True)
 job.add_cube(chargelig)
 
-ligset = LigandSetting("LigandSetting")
+ligset = LigandSetting("LigandSetting", title="Ligand Setting")
 job.add_cube(ligset)
 
 # Protein Reading cube. The protein prefix parameter is used to select a name for the
@@ -96,10 +93,7 @@ iprot.promote_parameter("data_in", promoted_name="protein", title='Protein Input
 job.add_cube(iprot)
 
 protset = ProteinSetting("ProteinSetting", title="Protein Setting")
-protset.promote_parameter("protein_prefix",
-                          promoted_name="protein_prefix",
-                          default="PRT",
-                          description="Protein prefix used to name the protein")
+protset.promote_parameter("protein_prefix", promoted_name="protein_prefix", default="PRT")
 job.add_cube(protset)
 
 # COMPLEX SETTING
@@ -112,12 +106,13 @@ job.add_cube(complx)
 solvateComplex = SolvationCube("HydrationComplex", title="Complex Hydration")
 solvateComplex.promote_parameter('density', promoted_name='density', default=1.03,
                                  description="Solution density in g/ml")
+solvateComplex.promote_parameter('close_solvent', promoted_name='close_solvent', default=True,
+                                 description='The solvent molecules will be placed very close to the solute')
 solvateComplex.promote_parameter('salt_concentration', promoted_name='salt_concentration', default=50.0,
                                  description='Salt concentration (Na+, Cl-) in millimolar')
 solvateComplex.set_parameters(solvents='[H]O[H]')
 solvateComplex.set_parameters(molar_fractions='1.0')
 solvateComplex.set_parameters(close_solvent=True)
-
 job.add_cube(solvateComplex)
 
 # Complex Force Field Application
@@ -126,7 +121,15 @@ ffComplex.promote_parameter('ligand_forcefield', promoted_name='ligand_forcefiel
 ffComplex.promote_parameter('other_forcefield', promoted_name='other_forcefield', default='GAFF2')
 job.add_cube(ffComplex)
 
+# Add YANK Cube
+yank_proxy = YankProxyCube("YankProxy", title="Yank Proxy")
+yank_proxy.promote_parameter('iterations', promoted_name='iterations',
+                             default=1000,
+                             description="Total number of Yank iterations")
+job.add_cube(yank_proxy)
+
 # First Yank Cube used to build the UI interface
+<<<<<<< HEAD:floes/Binding_free_energy_repex_linear.py
 abfe0 = YankBindingFECube("ABFE0", title="YANK ABFE REPEX 0")
 abfe0.promote_parameter('iterations', promoted_name='iterations',
                         default=1000,
@@ -149,6 +152,30 @@ abfe0.set_parameters(protocol='windows_29')
 abfe0.set_parameters(min_parallel=0)
 
 job.add_cube(abfe0)
+=======
+abfe = YankBindingFECube("YankABFE", title="Yank ABFE REPEX")
+abfe.promote_parameter('iterations', promoted_name='iterations',
+                       description="Total Number of Yank iterations for the entire floe. "
+                                   "A Yank iteration is 500 MD steps")
+# abfe.promote_parameter('verbose', promoted_name='verbose', default=True)
+abfe.promote_parameter('temperature', promoted_name='temperature', default=300.0,
+                       description='Temperature (Kelvin)')
+abfe.promote_parameter('pressure', promoted_name='pressure', default=1.0,
+                       description='Pressure (atm)')
+abfe.promote_parameter('hmr', promoted_name='hmr', default=False,
+                       description='Hydrogen Mass Repartitioning')
+abfe.promote_parameter('restraints', promoted_name='restraints',
+                       default='boresch',
+                       description='Select the restraint types to apply to the ligand during the '
+                                   'alchemical decoupling. Choices: harmonic, boresch')
+abfe.set_parameters(verbose=False)
+# Testing
+abfe.set_parameters(min_parallel=0)
+
+abfe.set_parameters(sampler='repex')
+abfe.set_parameters(protocol='windows_29')
+job.add_cube(abfe)
+>>>>>>> Cycle:floes/Binding_free_energy_repex.py
 
 # Minimization
 minComplex = OpenMMminimizeCube('minComplex', title='Complex Minimization')
@@ -265,6 +292,7 @@ job.add_cube(equilLigand)
 
 sync = SyncBindingFECube("SyncCube", title="Unbounded and Bonded Synchronization")
 job.add_cube(sync)
+<<<<<<< HEAD:floes/Binding_free_energy_repex_linear.py
 cube_list.append(sync)
 
 # Add YANK first Cube
@@ -288,13 +316,17 @@ for i in range(1, number_cubes_binding):
 
 ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out", description="Data Set Out Name")
+=======
+
+ofs = DatasetWriterCube('ofs', title='Out')
+ofs.promote_parameter("data_out", promoted_name="out")
+>>>>>>> Cycle:floes/Binding_free_energy_repex.py
 job.add_cube(ofs)
-cube_list.append(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.set_parameters(data_out='fail.oedb')
 job.add_cube(fail)
-cube_list.append(fail)
+
 
 # Complex Connections
 iprot.success.connect(protset.intake)
@@ -319,13 +351,13 @@ minimizeLigand.success.connect(warmupLigand.intake)
 warmupLigand.success.connect(equilLigand.intake)
 equilLigand.success.connect(sync.solvated_ligand_in_port)
 
-
-# Connections Yank cubes
-for i in range(0, len(cube_list)-2):
-    cube_list[i].success.connect(cube_list[i + 1].intake)
-    if i == len(cube_list) - 3:
-        cube_list[i].failure.connect(cube_list[i+2].intake)
-
+# ABFE Connections
+sync.success.connect(yank_proxy.intake)
+yank_proxy.success.connect(ofs.intake)
+yank_proxy.failure.connect(fail.intake)
+yank_proxy.cycle_out_port.connect(abfe.intake)
+abfe.success.connect(yank_proxy.cycle_in_port)
+abfe.failure.connect(fail.intake)
 
 if __name__ == "__main__":
     job.run()

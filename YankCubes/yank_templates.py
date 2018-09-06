@@ -15,10 +15,9 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-# *************USER SETTING**************
-number_cubes_binding = 15
-number_cubes_solvation = 2
-# ***************************************
+
+# Total max running time per cube in hours
+max_cube_running_time = 10.0
 
 resources = {'k80':
                  {'w29': {'slope': 1.12e-6, 'intercept': 0.002},
