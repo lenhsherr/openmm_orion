@@ -19,7 +19,6 @@
 
 from floe.api import WorkFloe
 
-
 from cuberecord import (DatasetWriterCube,
                         DatasetReaderCube)
 
@@ -36,7 +35,7 @@ from MDCubes.OpenMMCubes.cubes import (OpenMMminimizeCube,
                                        OpenMMNvtCube,
                                        OpenMMNptCube)
 
-job = WorkFloe("Solvation Free Energy")
+job = WorkFloe("Solvation Free Energy", title="Solvation Free Energy")
 
 job.description = """
     The Solvation Free Energy protocol performs Solvation Free Energy Calculations (SFEC) on 
@@ -65,11 +64,9 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
 iligs = DatasetReaderCube("Ligands", title="Ligand Reader")
-
-iligs.promote_parameter("data_in", promoted_name="ligands",
-                        title="Ligand Input File",
-                        description="Ligand file name")
+iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
 job.add_cube(iligs)
+
 
 chargelig = LigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
@@ -103,7 +100,7 @@ job.add_cube(ff)
 # Add YANK Cube
 yank_proxy = YankProxyCube("YankProxy", title="Yank Proxy")
 yank_proxy.promote_parameter('iterations', promoted_name='iterations', default=1000,
-                             description="Total number of Yank iterations. Each Yank iteration is 500 MD steps")
+                             description="Total number of Yank iterations")
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
@@ -154,11 +151,10 @@ equil.set_parameters(suffix='equil')
 job.add_cube(equil)
 
 ofs = DatasetWriterCube('ofs', title='Out')
-ofs.promote_parameter("data_out", promoted_name="out", description="Data Set Out Name")
+ofs.promote_parameter("data_out", promoted_name="out")
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.set_parameters(data_out='fail.oedb')
 job.add_cube(fail)
 
 iligs.success.connect(chargelig.intake)

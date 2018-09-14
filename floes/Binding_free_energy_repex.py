@@ -40,7 +40,7 @@ from YankCubes.cubes import (SyncBindingFECube,
 from cuberecord import (DatasetWriterCube,
                         DatasetReaderCube)
 
-job = WorkFloe('Binding Affinity Replica Exchange')
+job = WorkFloe('Binding Affinity Replica Exchange', title='Binding Affinity Replica Exchange')
 
 job.description = """
     The Absolute Binding Affinity Free Energy protocol (ABFE) performs Binding Affinity calculations
@@ -74,7 +74,10 @@ job.tags = [tag for lists in job.classification for tag in lists]
 
 # Ligand setting
 iligs = DatasetReaderCube("LigandReader", title="Ligand Reader")
-iligs.promote_parameter("data_in", promoted_name="ligands", title="Ligand Input File", description="Ligand file name")
+iligs.promote_parameter("data_in",
+                        promoted_name="ligands",
+                        title="Ligand Input File",
+                        description="Ligand file name")
 job.add_cube(iligs)
 
 chargelig = LigandChargeCube("LigCharge", title="Ligand Charge")
@@ -125,7 +128,8 @@ job.add_cube(ffComplex)
 yank_proxy = YankProxyCube("YankProxy", title="Yank Proxy")
 yank_proxy.promote_parameter('iterations', promoted_name='iterations',
                              default=1000,
-                             description="Total number of Yank iterations")
+                             description="Total number of Yank iterations. "
+                                         "Each Yank iteration is 500 MD steps")
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
@@ -145,7 +149,6 @@ abfe.promote_parameter('restraints', promoted_name='restraints',
                        description='Select the restraint types to apply to the ligand during the '
                                    'alchemical decoupling. Choices: harmonic, boresch')
 abfe.promote_parameter('verbose', promoted_name='verbose', default=False, description="Yank verbose mode on/off")
-abfe.promote_parameter('user_template_file', promoted_name='user_template_file', default=None)
 abfe.set_parameters(sampler='repex')
 abfe.set_parameters(protocol='windows_29')
 job.add_cube(abfe)
@@ -271,7 +274,6 @@ ofs.promote_parameter("data_out", promoted_name="out")
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')
-fail.set_parameters(data_out='fail.oedb')
 job.add_cube(fail)
 
 
