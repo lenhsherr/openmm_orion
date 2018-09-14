@@ -125,7 +125,7 @@ job.add_cube(ffComplex)
 yank_proxy = YankProxyCube("YankProxy", title="Yank Proxy")
 yank_proxy.promote_parameter('iterations', promoted_name='iterations',
                              default=1000,
-                             description="Total number of Yank iterations. Each Yank iteration is 500 MD steps")
+                             description="Total number of Yank iterations")
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
@@ -144,7 +144,8 @@ abfe.promote_parameter('restraints', promoted_name='restraints',
                        default='boresch',
                        description='Select the restraint types to apply to the ligand during the '
                                    'alchemical decoupling. Choices: harmonic, boresch')
-abfe.set_parameters(verbose=False)
+abfe.promote_parameter('verbose', promoted_name='verbose', default=False, description="Yank verbose mode on/off")
+abfe.promote_parameter('user_template_file', promoted_name='user_template_file', default=None)
 abfe.set_parameters(sampler='repex')
 abfe.set_parameters(protocol='windows_29')
 job.add_cube(abfe)
@@ -264,9 +265,9 @@ job.add_cube(equilLigand)
 
 sync = SyncBindingFECube("SyncCube", title="Unbounded and Bonded Synchronization")
 job.add_cube(sync)
+
 ofs = DatasetWriterCube('ofs', title='Out')
 ofs.promote_parameter("data_out", promoted_name="out")
-
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')

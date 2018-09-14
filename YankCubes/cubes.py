@@ -73,6 +73,8 @@ from os import environ
 from YankCubes.yank_templates import (resources,
                                       max_cube_running_time)
 
+import yaml
+
 
 class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
     version = "0.0.0"
@@ -625,6 +627,14 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                  'windows_sams'],
         help_text='Select the protocol type')
 
+    user_template_file = parameter.FileInputParameter(
+        'user_template_file',
+        default=None,
+        help_text=""""Binding Affinity Template File. If a file is provided 
+        some of the default Yank parameters will be ignored and others will 
+        be overwritten by using the parameters in the template file"""
+    )
+
     def begin(self):
         self.opt = vars(self.args)
         self.opt['Logger'] = self.log
@@ -702,6 +712,9 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                 raise ValueError("The selected sampling method is not supported: {}".format(opt['sampler']))
 
             iterations_per_cube = int(max_cube_running_time/total_time_per_iteration)
+
+            if opt['user_template_file'] is not None:
+                iterations_per_cube = 5
 
             # # TODO DEBUGGING REMOVE NEXT LINE
             # iterations_per_cube = 5
@@ -870,6 +883,36 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                     restraints=opt['restraints'],
                     protocol=opt['protocol']
                 )
+
+                if opt['user_template_file']:
+
+                    self.log.warn(">>>>>>> {} USER TEMPLATE FILE IN USE".format(self.title))
+
+                    fn = opt['user_template_file']
+                    f = open(fn, 'r')
+
+                    yank_user_binding_template = f.read()
+
+                    yank_template = yank_user_binding_template.format(
+                        verbose='yes' if opt['verbose'] else 'no',
+                        minimize='yes' if minimize else 'no',
+                        output_directory=output_directory,
+                        timestep=opt['timestep'],
+                        number_iterations=new_iterations,
+                        temperature=opt['temperature'],
+                        pressure=opt['pressure'],
+                        resume_sim='yes' if resume_sim else 'no',
+                        resume_setup='yes' if resume_setup else 'no',
+                        hydrogen_mass=4.0 if opt['hmr'] else 1.0,
+                        alchemical_pme_treatment=alchemical_pme_treatment,
+                        checkpoint_interval=checkpoint_interval,
+                        complex_pdb_fn=solvated_complex_structure_fn,
+                        complex_xml_fn=solvated_complex_omm_serialized_fn,
+                        solvent_pdb_fn=solvated_ligand_structure_fn,
+                        solvent_xml_fn=solvated_ligand_omm_serialized_fn,
+                        ligand_resname=opt['ligand_resname'],
+                        solvent_dsl=solvent_str_names,
+                    )
 
                 opt['yank_template'] = yank_template
 
