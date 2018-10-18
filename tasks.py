@@ -16,15 +16,8 @@
 # or its use.
 
 import os
-import sys
 import shutil
 from invoke import task, run
-from packaging.version import Version
-import multiprocessing
-
-
-from MDOrion import __version__  # noqa
-
 
 @task
 def flake8(ctx):
@@ -32,133 +25,40 @@ def flake8(ctx):
 
 
 @task
-def test(ctx):
+def testcubes(ctx):
+    """
+    run cube tests
+    """
+
+    clean(ctx)
+    run("py.test -s -v -m 'not floetest'")
+
+
+@task
+def testfloes(ctx):
     """
     run tests
     """
-    clean_pyc(ctx)
-    flake8(ctx)
-    try:
-        from xdist import __version__ as xver  # noqa
-        os.system("python -m pytest -s -n {} --tb=native".format(multiprocessing.cpu_count()))
-    except ImportError:
-        os.system("python -m pytest -s --tb=native")
+    clean(ctx)
+    run("py.test -s -v -m ./tests ")
 
 
 @task
-def package(ctx):
+def testorion(ctx, profile=""):
     """
-    Create package
+    run tests
     """
     clean(ctx)
-    append_dev_version(ctx)
-    run("python setup.py sdist --formats=gztar")
-    run("python setup.py bdist_wheel")
-    reset_dev_version(ctx)
 
+    if profile is "":
+        if "ORION_PROFILE" in os.environ:
+            profile = os.getenv("ORION_PROFILE")
+        else:
+            profile = 'default'
 
-@task
-def upload(ctx):
-    """
-    Upload
-    """
-    current_ver = append_dev_version(ctx)
-    package(ctx)
-    twine_dist_args = "upload -r magpie ./dist/OpenEye-MDOrion-{}.tar.gz".format(current_ver)
-    twine_wheel_args = "upload -r magpie ./dist/OpenEye_MDOrion-{}-*.whl".format(current_ver)
-    if sys.platform == 'win32':
-        run("twine.exe {}".format(twine_dist_args))
-        run("twine.exe {}".format(twine_wheel_args))
-    else:
-        run("twine {}".format(twine_dist_args))
-        run("twine {}".format(twine_wheel_args))
+    print("Using Orion Profile: {}".format(profile))
 
-
-@task
-def append_dev_version(ctx):
-    """
-    set dev version tag - git timestamp and sha
-    """
-    if "dev" not in __version__:
-        return __version__
-
-    print("Updating dev version with timestamp and git SHA")
-
-    results = run("git log --pretty=format:'%cd+git%h' -n 1 --date=format:%Y%m%d%H%M%S --abbrev=8",
-                  hide='both')
-    dev_version_tag = results.stdout
-
-    new_lines = []
-
-    with open('MDOrion/__init__.py', 'r') as f:
-        all_lines = f.readlines()
-        for line in all_lines:
-            if line.startswith("__version__"):
-                vers = Version(line.split("=")[-1].strip().replace("'", "").replace('"', ''))
-                new_lines.append('__version__ = "{}.dev{}"\n'.format(vers.base_version,
-                                                                     dev_version_tag))
-                dev_version = "{}.dev{}".format(vers.base_version, dev_version_tag)
-            else:
-                new_lines.append(line)
-
-    with open('MDOrion/__init__.py', 'w') as o:
-        o.writelines(new_lines)
-        o.close()
-
-    return dev_version
-
-
-@task
-def reset_dev_version(ctx):
-    """
-    reset/clean the dev version tag
-    """
-    if "dev" not in __version__:
-        return
-
-    print("Cleaning dev version with timestamp and git SHA")
-
-    new_lines = []
-
-    with open('MDOrion/__init__.py', 'r') as f:
-        all_lines = f.readlines()
-        for line in all_lines:
-            if line.startswith("__version__"):
-                vers = Version(line.split("=")[-1].strip().replace("'", "").replace('"', ''))
-                new_lines.append('__version__ = "{}.dev"\n'.format(vers.base_version))
-            else:
-                new_lines.append(line)
-
-    with open('MDOrion/__init__.py', 'w') as o:
-        o.writelines(new_lines)
-        o.close()
-
-
-@task
-def update_copyright(ctx):
-    run("oecopyright --type example examples")
-    run("oecopyright --type proprietary MDOrion")
-
-
-@task
-def docs(ctx):
-    clean_docs(ctx)
-    curdir = os.getcwd()
-    os.chdir('docs')
-    if sys.platform == 'win32':
-        run("make.bat html")
-    else:
-        run("make html")
-    os.chdir(curdir)
-
-
-@task
-def serve_docs(ctx):
-    docs(ctx)
-    curdir = os.getcwd()
-    os.chdir('docs/build/html')
-    run('python -m http.server')
-    os.chdir(curdir)
+    run("ORION_PROFILE={} py.test -s -v --orion ./tests".format(profile))
 
 
 @task

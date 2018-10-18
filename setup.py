@@ -42,7 +42,7 @@ def get_version():
 
 setup(
     name="MDOrion",
-    version='0.7.10',
+    version='0.7.11',
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
     author="Christopher Bayly, Gaetano Calabro, Nathan M. Lim, John Chodera, ",
@@ -50,6 +50,7 @@ setup(
     description='Orion cubes to perform MD and MD analysis',
     install_requires=install_reqs,
     license='Other/Proprietary License',
+    url='https://github.com/oess/openmm_orion',
     classifiers=[
         "Development Status :: 1 - Planning",
         'Intended Audience :: Developers',
@@ -60,5 +61,9 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.5',
     ],
+    entry_points='''
+        [console_scripts]
+        mdocli=MDOcli.command_line:main
+    ''',
     zip_safe=False
 )

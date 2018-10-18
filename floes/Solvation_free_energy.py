@@ -31,32 +31,31 @@ from LigPrepCubes.cubes import (LigandChargeCube,
 from YankCubes.cubes import (YankSolvationFECube,
                              YankProxyCube)
 
-from MDCubes.OpenMMCubes.cubes import (OpenMMminimizeCube,
-                                       OpenMMNvtCube,
-                                       OpenMMNptCube)
+from MDCubes.cubes import (OpenMMminimizeCube,
+                           OpenMMNvtCube,
+                           OpenMMNptCube)
 
 job = WorkFloe("Solvation Free Energy", title="Solvation Free Energy")
 
 job.description = """
-    The Solvation Free Energy protocol performs Solvation Free Energy Calculations (SFEC) on 
-    a set of provided ligands by using YANK ( http://getyank.org/latest/ ). The ligands need 
-    to have coordinates, correct chemistry and must be neutral. Each ligand can have multiple
-    conformers, but each conformer will be treated as a different ligand and prepared to run SFEC.
-    The ligands are solvated in the selected mixture (default water) and parametrized accordingly
-    to the provided force field. A minimization stage is performed on the system followed by a warm up
-    (NVT ensemble) and an equilibration stage (NPT ensemble). In the minimization, warm up 
-    and equilibration stage positional harmonic restraints are applied to the ligands with different 
-    force constants. At the end of the equilibration stage the SFEC calculation is run by YANK 
-    with the selected parameters. Solvation Free Energy values and floe reports are output.    
-    
-    Required Input Parameters:
-    -----------
-    ligands: Dataset of the prepared ligands
-    
-    Outputs:
-    --------
-    out : Dataset of the solvated systems with the calculated solvation free energies and
-    floe reports
+The Solvation Free Energy protocol performs Solvation Free Energy Calculations (SFEC) on
+a set of provided ligands using YANK ( http://getyank.org/latest/ ). The ligands need
+to have coordinates, correct chemistry and must be neutral. Each ligand can have multiple
+conformers, but each conformer will be prepared and treated as a different ligand.
+The ligands are solvated in water (or other solvent or solvent mixture) and parametrized
+by the selected force field.
+Preceding the SFEC is minimization, warm up, and equilibration in the presence of
+positional harmonic restraints. The SFEC is then run by YANK with the selected parameters.
+The output floe report contains the Solvation Free Energy values and health checks.
+
+Required Input Parameters:
+-----------
+ligands: Dataset of the prepared ligands
+
+Outputs:
+--------
+* out : Dataset of the solvated systems with the calculated solvation free energies
+* floe report : An analysis of the results for each ligand
 """
 
 job.classification = [['Solvation Free Energy']]
@@ -70,7 +69,7 @@ job.add_cube(iligs)
 
 chargelig = LigandChargeCube("LigCharge", title="Ligand Charge")
 chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
-                            description="Charge the ligand or not", default=True)
+                            description="Calculate ligand partial charges", default=True)
 job.add_cube(chargelig)
 
 ligset = LigandSetting("LigandSetting")
@@ -80,13 +79,13 @@ job.add_cube(ligset)
 solvate = SolvationCube("Solvation", title="System Solvation")
 solvate.promote_parameter("density", promoted_name="density", title="Solution density in g/ml", default=1.0,
                           description="Solution Density in g/ml")
-solvate.promote_parameter("solvents", promoted_name="solvents", title="Solvent components",
-                          default='[H]O[H]',
-                          description="Comma separated smiles strings of solvent components")
-solvate.promote_parameter("molar_fractions", promoted_name="molar_fractions",
-                          title="Molar fractions",
-                          default='1.0',
-                          description="Comma separated strings of solvent molar fractions")
+#solvate.promote_parameter("solvents", promoted_name="solvents", title="Solvent components",
+#                          default='[H]O[H]',
+#                          description="Comma separated smiles strings of solvent components")
+#solvate.promote_parameter("molar_fractions", promoted_name="molar_fractions",
+#                          title="Molar fractions",
+#                          default='1.0',
+#                          description="Comma separated strings of solvent molar fractions")
 solvate.set_parameters(distance_between_atoms=2.5)
 solvate.set_parameters(padding_distance=11.0)
 
@@ -94,7 +93,7 @@ job.add_cube(solvate)
 
 
 ff = ForceFieldCube("ForceField", title="System Parametrization")
-ff.promote_parameter('ligand_forcefield', promoted_name='ligand_ff', default='GAFF2')
+ff.promote_parameter('ligand_forcefield', promoted_name='Ligand ForceField', default='GAFF2')
 job.add_cube(ff)
 
 # Add YANK Cube
@@ -104,7 +103,7 @@ yank_proxy.promote_parameter('iterations', promoted_name='iterations', default=1
 job.add_cube(yank_proxy)
 
 # First Yank Cube used to build the UI interface
-solvationfe = YankSolvationFECube("SovationFE", title="Yank Solvation")
+solvationfe = YankSolvationFECube("SolvationFE", title="Yank Solvation")
 solvationfe.promote_parameter('iterations', promoted_name='iterations')
 solvationfe.promote_parameter('verbose', promoted_name='verbose', default=False)
 solvationfe.promote_parameter('temperature', promoted_name='temperature', default=300.0,
@@ -155,6 +154,10 @@ ofs.promote_parameter("data_out", promoted_name="out")
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')
+<<<<<<< HEAD
+=======
+fail.promote_parameter("data_out", promoted_name="fail")
+>>>>>>> gcalabro_data_record
 job.add_cube(fail)
 
 iligs.success.connect(chargelig.intake)

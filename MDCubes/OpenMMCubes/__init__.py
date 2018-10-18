@@ -15,6 +15,3 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-
-from .utils import *
-from .simtools import *

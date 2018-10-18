@@ -17,7 +17,7 @@
 
 from floe.api.orion import in_orion
 
-from Standards.utils import ParmedData
+from Standards.utils import ParmedData, MDStateData
 
 from datarecord import OEPrimaryMolField
 
@@ -59,7 +59,7 @@ class Fields:
     primary_molecule = OEPrimaryMolField()
 
     # Parmed Structure Field
-    structure = OEField('Structure_Parmed_OPLMD', ParmedData)
+    pmd_structure = OEField('Structure_Parmed_OPLMD', ParmedData)
 
     # The Stage Name
     stage_name = OEField('Stage_name_OPLMD', Types.String)
@@ -70,14 +70,15 @@ class Fields:
     # Log Info
     log_data = OEField('Log_data_OPLMD', Types.String)
 
+    # MD State
+    md_state = OEField("MDState_OPLMD", MDStateData)
+
     # MD System Field
     md_system = OEField("MDSystem_OPLMD", Types.Record)
 
-    md_system.get_type()
-
     # Trajectory
     if in_orion():
-        trajectory = OEField("Trajectory_OPLMD", TypesCR.Orion.LargeFile)
+        trajectory = OEField("Trajectory_OPLMD", TypesCR.Orion.File)
     else:
         trajectory = OEField("Trajectory_OPLMD", Types.String)
 
@@ -92,16 +93,16 @@ class Fields:
 
 # ---------------- Record Standards -------------- #
 
-# The MDSystemRecord class holds the system topology as an OEMol and the system
-# parametrization by using a Parmed Structure object
+# The MDSystemRecord class holds the system topology as an OEMol and the System
+# MD State made of system positions, velocities and box_vectors
 
 class MDRecords:
     class MDSystemRecord(OERecord):
 
-        def __init__(self, molecule, structure):
+        def __init__(self, molecule, state):
             super().__init__()
             self.set_value(Fields.topology, molecule)
-            self.set_value(Fields.structure, structure)
+            self.set_value(Fields.md_state, state)
 
     class MDStageRecord(OERecord):
 

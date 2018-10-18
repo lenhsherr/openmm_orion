@@ -15,7 +15,8 @@
 # liable for any damages or liability in connection with the Sample Code
 # or its use.
 
-__version__ = '0.7.10'
+
+__version__ = '0.7.11'
 
 import ComplexPrepCubes
 import ForceFieldCubes
@@ -25,3 +26,4 @@ import ProtPrepCubes
 import Standards
 import TrjAnalysisCubes
 import YankCubes
+import MDOcli

@@ -36,6 +36,7 @@ session = OrionSession()
 @package(PACKAGE_DIR)
 class TestYankSolvationOrionFloes(FloeTestCase):
 
+    @pytest.mark.floetest
     @pytest.mark.slow
     def test_yank_solvation_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
@@ -52,13 +53,47 @@ class TestYankSolvationOrionFloes(FloeTestCase):
         )
 
         output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "ligands": ligand_file.identifier,
                     "iterations": 10,
-                    "out": output_file.identifier
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
+                }
+            }
+        )
+
+        self.assertWorkFloeComplete(workfloe)
+
+    @pytest.mark.floetest
+    @pytest.mark.slow
+    def test_yank_solvation_multi_ligs_floe(self):
+        workfloe = WorkFloeWrapper.get_workfloe(
+            os.path.join(FLOES_DIR, "Solvation_free_energy.py"),
+            run_timeout=8000,
+            queue_timeout=1200
+        )
+
+        ligand_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "freesolv_mini.oeb"
+            )
+        )
+
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
+        workfloe.start(
+            {
+                "promoted": {
+                    "ligands": ligand_file.identifier,
+                    "iterations": 10,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 }
             }
         )

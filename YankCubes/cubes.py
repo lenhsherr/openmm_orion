@@ -29,7 +29,7 @@ from datarecord import (Types,
                         OERecord,
                         OEFieldMeta)
 
-import MDCubes.OpenMMCubes.utils as omm_utils
+import MDCubes.utils as omm_utils
 
 from openeye import oechem
 
@@ -45,12 +45,8 @@ import os
 
 import itertools
 
-from YankCubes.yank_templates import (yank_solvation_template,
-                                      yank_binding_template)
-
 from YankCubes import utils as yankutils
 
-from yank.analyze import ExperimentAnalyzer
 
 from Standards import (MDStageNames,
                        Fields,
@@ -60,18 +56,11 @@ import copy
 
 import textwrap
 
-import subprocess
-
 from oeommtools import utils as oeommutils
 
-from orionclient.session import in_orion, OrionSession
+from Standards.utils import ParmedData
 
-from orionclient.types import File
-
-from os import environ
-
-from YankCubes.yank_templates import (resources,
-                                      max_cube_running_time)
+from MDCubes.utils import MDState
 
 
 class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
@@ -148,10 +137,10 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
     def process(self, record, port):
 
         try:
-            self.log.warn(">>>>>>> {} verbose {}".format(self.title, self.opt['verbose']))
-            self.log.warn(">>>>>>> {} iterations {}".format(self.title, self.opt['iterations']))
-            self.log.warn(">>>>>>> {} pressure {}".format(self.title, self.opt['pressure']))
-            self.log.warn(">>>>>>> {} temperature {}".format(self.title, self.opt['temperature']))
+            self.log.info("[{}] verbose {}".format(self.title, self.opt['verbose']))
+            self.log.info("[{}] iterations {}".format(self.title, self.opt['iterations']))
+            self.log.info("[{}] pressure {}".format(self.title, self.opt['pressure']))
+            self.log.info("[{}] temperature {}".format(self.title, self.opt['temperature']))
 
             # The copy of the dictionary option as local variable
             # is necessary to avoid filename collisions due to
@@ -208,28 +197,32 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
             current_iterations = record.get_value(current_iteration_field)
 
             if current_iterations == 0:
-                minimize = True
-                resume_sim = False
-                resume_setup = False
+                opt['minimize'] = True
+                opt['resume_sim'] = False
+                opt['resume_setup'] = False
+                iterations_per_cube = 10
+            else:
 
-            total_time_per_iteration = resources['k80']['w29']['intercept'] + resources['k80']['w29'][
-                'slope'] * system.NumAtoms()
+                iterations_per_cube_field = OEField("iterations_per_cube", Types.Int)
 
-            iterations_per_cube = int(max_cube_running_time / total_time_per_iteration)
+                if not record.has_value(iterations_per_cube_field):
+                    raise ValueError("Missing the number of iterations per cube field")
+
+                iterations_per_cube = record.get_value(iterations_per_cube_field)
+                self.log.info("{} iterations per cube {}".format(self.title, iterations_per_cube))
 
             # Calculate the new number of iterations to run
             if current_iterations + iterations_per_cube > opt['iterations']:
-                new_iterations = opt['iterations']
+                opt['new_iterations'] = opt['iterations']
             else:
-                new_iterations = current_iterations + iterations_per_cube
+                opt['new_iterations'] = current_iterations + iterations_per_cube
 
             # Checkpoint interval
-            checkpoint_interval = new_iterations - current_iterations
+            opt['checkpoint_interval'] = opt['new_iterations'] - current_iterations
 
-            self.log.warn(">>>>>>> {} current iterations {}".format(self.title, current_iterations))
-            self.log.warn(">>>>>>> {} iterations per cube {}".format(self.title, iterations_per_cube))
-            self.log.warn(">>>>>>> {} new_iterations {}".format(self.title, new_iterations))
-            self.log.warn(">>>>>>> {} checkpoint_interval {}".format(self.title, checkpoint_interval))
+            self.log.info("[{}] current iterations {}".format(self.title, current_iterations))
+            self.log.info("[{}] new_iterations {}".format(self.title, opt['new_iterations']))
+            self.log.info("[{}] checkpoint_interval {}".format(self.title, opt['checkpoint_interval']))
 
             prot_split, lig_split, water, excipients = oeommutils.split(system, ligand_res_name=opt['ligand_res_name'])
 
@@ -238,9 +231,9 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                 fchg_lig += at.GetFormalCharge()
 
             if fchg_lig != 0:
-                alchemical_pme_treatment = 'exact'
+                opt['alchemical_pme_treatment'] = 'exact'
             else:
-                alchemical_pme_treatment = 'direct-space'
+                opt['alchemical_pme_treatment'] = 'direct-space'
 
             if fchg_lig != 0:
                 raise ValueError("The ligand is not neutral: formal charge = {}".format(fchg_lig))
@@ -266,17 +259,24 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
             # Extract the most recent MDStageRecord
             md_stage_record = md_stages[-1]
 
+            # Extract from the record the Parmed structure
+            if not record.has_value(Fields.pmd_structure):
+                raise ValueError("The System does not seem to be parametrized by the Force Field")
+
+            solvated_structure = record.get_value(Fields.pmd_structure)
+
             # Extract the MDSystemRecord
             md_system_record = md_stage_record.get_value(Fields.md_system)
 
-            # Extract from the MDSystemRecord the the Parmed structure
-            parmed_structure = md_system_record.get_value(Fields.structure)
+            # Extract the MD State
+            mdstate = md_system_record.get_value(Fields.md_state)
 
-            # Extract the MD data
-            mdData = omm_utils.MDData(parmed_structure)
-            solvated_structure = mdData.structure
+            # Update the Parmed structure with the MD State
+            solvated_structure.positions = mdstate.get_positions()
+            solvated_structure.velocities = mdstate.get_velocities()
+            solvated_structure.box_vectors = mdstate.get_box_vectors()
 
-            # Extract the ligand parmed structure
+            # Extract the ligand Parmed structure
             solute_structure = solvated_structure.split()[0][0]
             solute_structure.box = None
 
@@ -293,40 +293,44 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                 if '-' in solvent_res_names[i]:
                     solvent_res_names[i] = "'" + solvent_res_names[i] + "'"
 
-            solvent_str_names = ' '.join(solvent_res_names)
+            opt['solvent_str_names'] = ' '.join(solvent_res_names)
 
             # Write out all the required files and set-run the Yank experiment
             with TemporaryDirectory() as output_directory:
 
                 opt['Logger'].info("Output Directory {}".format(output_directory))
 
-                solvated_structure_fn = os.path.join(output_directory, "solvated.pdb")
-                solute_structure_fn = os.path.join(output_directory, "solute.pdb")
+                opt['output_directory'] = output_directory
+                opt['solvated_structure_fn'] = os.path.join(output_directory, "solvated.pdb")
+                opt['solute_structure_fn'] = os.path.join(output_directory, "solute.pdb")
 
-                solvated_omm_sys_serialized_fn = os.path.join(output_directory, "solvated.xml")
-                solute_omm_sys_serialized_fn = os.path.join(output_directory, "solute.xml")
+                opt['solvated_omm_sys_serialized_fn'] = os.path.join(output_directory, "solvated.xml")
+                opt['solute_omm_sys_serialized_fn'] = os.path.join(output_directory, "solute.xml")
 
                 # Restarting
                 if current_iterations != 0:
                     yank_files = md_stage_record.get_value(Fields.trajectory)
-                    filename = omm_utils.download(yank_files, delete=True)
 
-                    with tarfile.open(filename) as tar:
+                    filename = os.path.join(output_directory, "yank_files.tar")
+
+                    fn_local = omm_utils.download_file(yank_files, filename, delete=True)
+
+                    with tarfile.open(fn_local) as tar:
                         tar.extractall(path=output_directory)
 
-                    # Remove file after extraction
-                    os.remove(filename)
+                    # remove the tar file
+                    os.remove(fn_local)
 
                     # Disable minimization if restart is enabled
-                    minimize = False
+                    opt['minimize'] = False
                     # Enable Yank Restarting
-                    resume_sim = True
-                    resume_setup = True
+                    opt['resume_sim'] = True
+                    opt['resume_setup'] = True
                 else:
-                    with open(solvated_structure_fn, 'w') as f:
+                    with open(opt['solvated_structure_fn'], 'w') as f:
                         app.PDBFile.writeFile(solvated_structure.topology, solvated_structure.positions, file=f)
 
-                    with open(solute_structure_fn, 'w') as f:
+                    with open(opt['solute_structure_fn'], 'w') as f:
                         app.PDBFile.writeFile(solute_structure.topology, solute_structure.positions, file=f)
 
                     # Create the solvated and vacuum system
@@ -341,49 +345,34 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                                                                    removeCMMotion=False)
 
                     solvated_omm_sys_serialized = XmlSerializer.serialize(solvated_omm_sys)
-                    with open(solvated_omm_sys_serialized_fn, 'w') as solvated_f:
+                    with open(opt['solvated_omm_sys_serialized_fn'], 'w') as solvated_f:
                         solvated_f.write(solvated_omm_sys_serialized)
 
                     solute_omm_sys_serialized = XmlSerializer.serialize(solute_omm_sys)
-                    with open(solute_omm_sys_serialized_fn, 'w') as solute_f:
+                    with open(opt['solute_omm_sys_serialized_fn'], 'w') as solute_f:
                         solute_f.write(solute_omm_sys_serialized)
 
-                yank_template = yank_solvation_template.format(
-                    verbose='yes' if opt['verbose'] else 'no',
-                    minimize='yes' if minimize else 'no',
-                    output_directory=output_directory,
-                    timestep=4.0 if opt['hmr'] else 2.0,
-                    nsteps_per_iteration=opt['nsteps_per_iteration'],
-                    number_iterations=new_iterations,
-                    temperature=opt['temperature'],
-                    pressure=opt['pressure'],
-                    resume_sim='yes' if resume_sim else 'no',
-                    resume_setup='yes' if resume_setup else 'no',
-                    hydrogen_mass=4.0 if opt['hmr'] else 1.0,
-                    alchemical_pme_treatment=alchemical_pme_treatment,
-                    checkpoint_interval=checkpoint_interval,
-                    solvated_pdb_fn=solvated_structure_fn,
-                    solvated_xml_fn=solvated_omm_sys_serialized_fn,
-                    solute_pdb_fn=solute_structure_fn,
-                    solute_xml_fn=solute_omm_sys_serialized_fn,
-                    solvent_dsl=solvent_str_names)
+                # Run Yank
+                yankutils.run_yank_solvation(opt)
 
-                opt['yank_template'] = yank_template
+                if current_iterations == 0:
 
-                yankutils.run_yank(opt)
+                    iterations_per_cube = yankutils.calculate_iteration_time(output_directory, opt['new_iterations'])
 
-                if new_iterations == opt['iterations']:
+                    if iterations_per_cube == 0:
+                        raise ValueError("Total running time per cube > max Orion running time per cube")
 
-                    exp_dir = os.path.join(output_directory, "experiments")
+                    iterations_per_cube_field = OEField("iterations_per_cube", Types.Int)
 
-                    experiment_to_analyze = ExperimentAnalyzer(exp_dir)
-                    analysis = experiment_to_analyze.auto_analyze()
+                    record.set_value(iterations_per_cube_field, iterations_per_cube)
 
-                    # Calculate solvation free energy and its error
-                    DeltaG_solvation = analysis['free_energy']['free_energy_diff_unit']. \
-                                           in_units_of(unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-                    dDeltaG_solvation = analysis['free_energy']['free_energy_diff_error_unit']. \
-                                            in_units_of(unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
+                    self.log.info("{} iterations per cube saved on the record: {}".format(self.title,
+                                                                                          iterations_per_cube))
+
+                # Run Yank analysis
+                if opt['new_iterations'] == opt['iterations']:
+
+                    DeltaG_solvation, dDeltaG_solvation = yankutils.run_yank_analysis(opt)
 
                     # Create OE Field to save the Solvation Free Energy in kcal/mol
                     DG_Field = OEField('Solvation FE', Types.Float,
@@ -394,48 +383,13 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                     record.set_value(DG_Field, DeltaG_solvation)
                     record.set_value(dG_Field, dDeltaG_solvation)
 
-                    opt_1 = '--store={}'.format(exp_dir)
-
-                    result_fn = os.path.join(output_directory, 'results.html')
-                    opt_2 = '--output={}'.format(result_fn)
-
-                    opt_3 = '--format=html'
-
-                    try:
-                        os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-
-                        subprocess.check_call(['yank', 'analyze', 'report', opt_1, opt_2, opt_3])
-
-                        with open(result_fn, 'r') as f:
-                            result_str = f.read()
-
-                        record.set_value(Fields.yank_analysis, result_str)
-
-                        # Upload Floe Report
-                        if in_orion():
-                            session = OrionSession()
-
-                            file_upload = File.upload(session,
-                                                      "{} Yank Report".format(opt['system_title']),
-                                                      result_fn)
-
-                            session.tag_resource(file_upload, "floe_report")
-
-                            job_id = environ.get('ORION_JOB_ID')
-
-                            if job_id:
-                                session.tag_resource(file_upload, "Job {}".format(job_id))
-
-                    except subprocess.SubprocessError:
-                        opt['Logger'].warn("The result file have not been generated")
-
                 # Tar the Yank temp dir with its content:
                 tar_fn = os.path.basename(output_directory) + '.tar.gz'
                 with tarfile.open(tar_fn, mode='w:gz') as archive:
                     archive.add(output_directory, arcname='.', recursive=True)
 
                 # Create Large file object if required
-                lf = omm_utils.upload(tar_fn)
+                lf = omm_utils.upload_file(tar_fn, opt['system_title']+'.tar.gz')
 
                 str_logger += '\n' + '-' * 32 + ' SIMULATION ' + '-' * 32
 
@@ -443,7 +397,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
                     str_logger += '\n' + flog.read()
 
                 md_stage_record = MDRecords.MDStageRecord(MDStageNames.FEC,
-                                                          MDRecords.MDSystemRecord(system, mdData.structure),
+                                                          MDRecords.MDSystemRecord(system, mdstate),
                                                           log=str_logger,
                                                           trajectory=lf)
                 # md_stages.append(md_stage_record)
@@ -453,7 +407,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
 
                 record.set_value(Fields.primary_molecule, system)
 
-                record.set_value(current_iteration_field, new_iterations)
+                record.set_value(current_iteration_field, opt['new_iterations'])
 
                 self.success.emit(record)
 
@@ -473,8 +427,17 @@ class SyncBindingFECube(OERecordComputeCube):
     This cube is used to synchronize the solvated ligands and the related
     solvated complexes
     """
+
     classification = [["Synchronization Cube"]]
     tags = [tag for lists in classification for tag in lists]
+
+    # Override defaults for some parameters
+    parameter_overrides = {
+        "memory_mb": {"default": 6000},
+        "spot_policy": {"default": "Allowed"},
+        "prefetch_count": {"default": 1},  # 1 molecule at a time
+        "item_count": {"default": 1}  # 1 molecule at a time
+    }
 
     solvated_ligand_in_port = RecordInputPort("solvated_ligand_in_port")
 
@@ -520,12 +483,27 @@ class SyncBindingFECube(OERecordComputeCube):
                 new_record.set_value(Fields.id, pair[1].get_value(Fields.id))
                 new_record.set_value(Fields.title, pair[1].get_value(Fields.title))
 
-                ligand_solvated_field = OEField("ligand_solvated", Types.Record)
-                complex_solvated_field = OEField("complex_solvated", Types.Record)
-                new_record.set_value(ligand_solvated_field,
-                                     pair[0].get_value(Fields.md_stages)[-1].get_value(Fields.md_system))
-                new_record.set_value(complex_solvated_field,
-                                     pair[1].get_value(Fields.md_stages)[-1].get_value(Fields.md_system))
+                ligand_solvated_field = OEField("ligand_pmd_solvated", ParmedData)
+                complex_solvated_field = OEField("complex_pmd_solvated", ParmedData)
+
+                # Extract and update ligand parmed structure
+                ligand_md_state = pair[0].get_value(Fields.md_stages)[-1].get_value(Fields.md_system).get_value(Fields.md_state)
+                ligand_pmd_structure = pair[0].get_value(Fields.pmd_structure)
+
+                ligand_pmd_structure.positions = ligand_md_state.get_positions()
+                ligand_pmd_structure.velocities = ligand_md_state.get_velocities()
+                ligand_pmd_structure.box_vectors = ligand_md_state.get_box_vectors()
+
+                # Extract and update complex parmed structure
+                complex_md_state = pair[1].get_value(Fields.md_stages)[-1].get_value(Fields.md_system).get_value(Fields.md_state)
+                complex_pmd_structure = pair[1].get_value(Fields.pmd_structure)
+
+                complex_pmd_structure.positions = complex_md_state.get_positions()
+                complex_pmd_structure.velocities = complex_md_state.get_velocities()
+                complex_pmd_structure.box_vectors = complex_md_state.get_box_vectors()
+
+                new_record.set_value(ligand_solvated_field, ligand_pmd_structure)
+                new_record.set_value(complex_solvated_field, complex_pmd_structure)
 
                 self.success.emit(new_record)
 
@@ -619,13 +597,27 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
         help_text='Select the restraint types to apply to the ligand during the '
                   'alchemical decoupling. Choices: harmonic, boresch')
 
-    protocol = parameter.StringParameter(
-        'protocol',
+    protocol_repex = parameter.StringParameter(
+        'protocol_repex',
         default='windows_29',
-        choices=['windows_29',
-                 'auto_protocol',
+        choices=['auto_protocol',
+                 'windows_29'],
+        help_text='Select the repex protocol type')
+
+    protocol_sams = parameter.StringParameter(
+        'protocol_sams',
+        default='windows_sams',
+        choices=['auto_protocol',
                  'windows_sams'],
-        help_text='Select the protocol type')
+        help_text='Select the sams protocol type')
+
+    user_yank_yaml_file = parameter.FileInputParameter(
+        'user_yank_yaml_file',
+        default=None,
+        help_text="Binding Affinity Yank yaml file. If a file is provided the "
+                  "Yank yaml setting will be generated by using part of the Yank "
+                  "yaml template parameters and others will be overwritten by the "
+                  "provided yaml file")
 
     def begin(self):
         self.opt = vars(self.args)
@@ -638,10 +630,10 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
             current_iteration_field = OEField("current_iterations", Types.Int)
 
-            self.log.warn(">>>>>>> {} verbose {}".format(self.title, self.opt['verbose']))
-            self.log.warn(">>>>>>> {} iterations {}".format(self.title, self.opt['iterations']))
-            self.log.warn(">>>>>>> {} pressure {}".format(self.title, self.opt['pressure']))
-            self.log.warn(">>>>>>> {} temperature {}".format(self.title, self.opt['temperature']))
+            self.log.info("[{}] verbose {}".format(self.title, self.opt['verbose']))
+            self.log.info("[{}] iterations {}".format(self.title, self.opt['iterations']))
+            self.log.info("[{}] pressure {}".format(self.title, self.opt['pressure']))
+            self.log.info("[{}] temperature {}".format(self.title, self.opt['temperature']))
 
             # Logger string
             str_logger = '-' * 32 + ' YANK BINDING CUBE PARAMETERS ' + '-' * 32
@@ -691,36 +683,31 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
             current_iterations = record.get_value(current_iteration_field)
 
             if current_iterations == 0:
-                minimize = True
-                resume_sim = False
-                resume_setup = False
-
-            if opt['sampler'] == 'repex':
-                self.log.warn('REPEX samplig selected')
-                total_time_per_iteration = resources['k80']['w29']['intercept'] + resources['k80']['w29'][
-                    'slope'] * complex.NumAtoms()
-            elif opt['sampler'] == 'sams':
-                self.log.warn('SAMS samplig selected')
-                total_time_per_iteration = resources['k80']['wsams']['intercept'] + resources['k80']['wsams'][
-                    'slope'] * complex.NumAtoms()
+                opt['minimize'] = True
+                opt['resume_sim'] = False
+                opt['resume_setup'] = False
+                iterations_per_cube = 10
             else:
-                raise ValueError("The selected sampling method is not supported: {}".format(opt['sampler']))
+                iterations_per_cube_field = OEField("iterations_per_cube", Types.Int)
 
-            iterations_per_cube = int(max_cube_running_time / total_time_per_iteration)
+                if not record.has_value(iterations_per_cube_field):
+                    raise ValueError("Missing the number of iterations per cube field")
+
+                iterations_per_cube = record.get_value(iterations_per_cube_field)
+                self.log.info("{} iterations per cube {}".format(self.title, iterations_per_cube))
 
             # Calculate the new number of iterations to run
             if current_iterations + iterations_per_cube > opt['iterations']:
-                new_iterations = opt['iterations']
+                opt['new_iterations'] = opt['iterations']
             else:
-                new_iterations = current_iterations + iterations_per_cube
+                opt['new_iterations'] = current_iterations + iterations_per_cube
 
             # Checkpoint interval
-            checkpoint_interval = new_iterations - current_iterations
+            opt['checkpoint_interval'] = opt['new_iterations'] - current_iterations
 
-            self.log.warn(">>>>>>> {} current iterations {}".format(self.title, current_iterations))
-            self.log.warn(">>>>>>> {} iterations per cube {}".format(self.title, iterations_per_cube))
-            self.log.warn(">>>>>>> {} new_iterations {}".format(self.title, new_iterations))
-            self.log.warn(">>>>>>> {} checkpoint_interval {}".format(self.title, checkpoint_interval))
+            self.log.info("[{}] current iterations {}".format(self.title, current_iterations))
+            self.log.info("[{}] new_iterations {}".format(self.title, opt['new_iterations']))
+            self.log.info("[{}] checkpoint_interval {}".format(self.title, opt['checkpoint_interval']))
 
             # Split the complex in components
             protein_split, ligand_split, water, excipients = oeommutils.split(complex,
@@ -731,9 +718,9 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                 fchg_lig += at.GetFormalCharge()
 
             if fchg_lig != 0:
-                alchemical_pme_treatment = 'exact'
+                opt['alchemical_pme_treatment'] = 'exact'
             else:
-                alchemical_pme_treatment = 'direct-space'
+                opt['alchemical_pme_treatment'] = 'direct-space'
 
             solvent = water.CreateCopy()
 
@@ -756,26 +743,24 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                 if '-' in solvent_res_names[i]:
                     solvent_res_names[i] = "'" + solvent_res_names[i] + "'"
 
-            solvent_str_names = ' '.join(solvent_res_names)
+            opt['solvent_str_names'] = ' '.join(solvent_res_names)
 
             if current_iterations == 0:
-                solvated_ligand_record_field = OEField("ligand_solvated", Types.Record)
 
-                if not record.has_value(solvated_ligand_record_field):
-                    raise ValueError("The parametrized solvated ligand is missing")
+                solvated_ligand_pmd_field = OEField("ligand_pmd_solvated", ParmedData)
+                solvated_complex_pmd_field = OEField("complex_pmd_solvated", ParmedData)
 
-                solvated_ligand_mdsystem_record = record.get_value(solvated_ligand_record_field)
+                if not record.has_value(solvated_ligand_pmd_field):
+                    raise ValueError("The Parmed solvated ligand structure is missing")
 
-                solvated_ligand_parmed_structure = solvated_ligand_mdsystem_record.get_value(Fields.structure)
+                solvated_ligand_parmed_structure = record.get_value(solvated_ligand_pmd_field)
 
-                solvated_complex_record_field = OEField("complex_solvated", Types.Record)
+                if not record.has_value(solvated_complex_pmd_field):
+                    raise ValueError("The Parmed solvated complex structure is missing")
 
-                if not record.has_value(solvated_complex_record_field):
-                    raise ValueError("The parametrized solvated complex is missing")
+                solvated_complex_parmed_structure = record.get_value(solvated_complex_pmd_field)
 
-                solvated_complex_mdsystem_record = record.get_value(solvated_complex_record_field)
-
-                solvated_complex_parmed_structure = solvated_complex_mdsystem_record.get_value(Fields.structure)
+                mdstate = MDState(solvated_complex_parmed_structure)
 
             else:
                 # Extract the MDStageRecord list
@@ -786,42 +771,53 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
                 complex_mdsystem_record = md_stage_record.get_value(Fields.md_system)
 
-                solvated_complex_parmed_structure = complex_mdsystem_record.get_value(Fields.structure)
+                mdstate = complex_mdsystem_record.get_value(Fields.md_state)
+
+                solvated_complex_parmed_structure = record.get_value(Fields.pmd_structure)
+
+                solvated_complex_parmed_structure.positions = mdstate.get_positions()
+                solvated_complex_parmed_structure.velocities = mdstate.get_velocities()
+                solvated_complex_parmed_structure.box_vectors = mdstate.get_box_vectors()
 
             # Write out all the required files and set-run the Yank experiment
             with TemporaryDirectory() as output_directory:
 
                 opt['Logger'].info("Output Directory {}".format(output_directory))
 
-                solvated_complex_structure_fn = os.path.join(output_directory, "complex.pdb")
-                solvated_ligand_structure_fn = os.path.join(output_directory, "solvent.pdb")
-                solvated_complex_omm_serialized_fn = os.path.join(output_directory, "complex.xml")
-                solvated_ligand_omm_serialized_fn = os.path.join(output_directory, "solvent.xml")
+                opt['output_directory'] = output_directory
+
+                opt['solvated_complex_structure_fn'] = os.path.join(output_directory, "bonded_state.pdb")
+                opt['solvated_ligand_structure_fn'] = os.path.join(output_directory, "unbonded_state.pdb")
+                opt['solvated_complex_omm_serialized_fn'] = os.path.join(output_directory, "bonded_state.xml")
+                opt['solvated_ligand_omm_serialized_fn'] = os.path.join(output_directory, "unbonded_state.xml")
 
                 if current_iterations != 0:
                     yank_files = md_stage_record.get_value(Fields.trajectory)
-                    filename = omm_utils.download(yank_files, delete=True)
 
-                    with tarfile.open(filename) as tar:
+                    filename = os.path.join(output_directory, "yank_files.tar")
+
+                    fn_local = omm_utils.download_file(yank_files, filename, delete=True)
+
+                    with tarfile.open(fn_local) as tar:
                         tar.extractall(path=output_directory)
 
-                    # Remove File after extraction
-                    os.remove(filename)
+                    # remove the file
+                    os.remove(fn_local)
 
                     # Disable minimization if restart is enabled
-                    minimize = False
+                    opt['minimize'] = False
 
                     # Enable Yank Restarting
-                    resume_sim = True
-                    resume_setup = True
+                    opt['resume_sim'] = True
+                    opt['resume_setup'] = True
                 else:
 
-                    with open(solvated_complex_structure_fn, 'w') as f:
+                    with open(opt['solvated_complex_structure_fn'], 'w') as f:
                         app.PDBFile.writeFile(solvated_complex_parmed_structure.topology,
                                               solvated_complex_parmed_structure.positions,
                                               file=f)
 
-                    with open(solvated_ligand_structure_fn, 'w') as f:
+                    with open(opt['solvated_ligand_structure_fn'], 'w') as f:
                         app.PDBFile.writeFile(solvated_ligand_parmed_structure.topology,
                                               solvated_ligand_parmed_structure.positions,
                                               file=f)
@@ -843,99 +839,43 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
                     solvated_complex_omm_serialized = XmlSerializer.serialize(solvated_complex_omm_sys)
 
-                    with open(solvated_complex_omm_serialized_fn, 'w') as solvated_complex_f:
+                    with open(opt['solvated_complex_omm_serialized_fn'], 'w') as solvated_complex_f:
                         solvated_complex_f.write(solvated_complex_omm_serialized)
 
                     solvated_ligand_omm_serialized = XmlSerializer.serialize(solvated_ligand_omm_sys)
 
-                    with open(solvated_ligand_omm_serialized_fn, 'w') as solvated_ligand_f:
+                    with open(opt['solvated_ligand_omm_serialized_fn'], 'w') as solvated_ligand_f:
                         solvated_ligand_f.write(solvated_ligand_omm_serialized)
 
-                yank_template = yank_binding_template.format(
-                    verbose='yes' if opt['verbose'] else 'no',
-                    minimize='yes' if minimize else 'no',
-                    output_directory=output_directory,
-                    timestep=opt['timestep'],
-                    nsteps_per_iteration=opt['nsteps_per_iteration'],
-                    number_iterations=new_iterations,
-                    temperature=opt['temperature'],
-                    pressure=opt['pressure'],
-                    resume_sim='yes' if resume_sim else 'no',
-                    resume_setup='yes' if resume_setup else 'no',
-                    hydrogen_mass=4.0 if opt['hmr'] else 1.0,
-                    alchemical_pme_treatment=alchemical_pme_treatment,
-                    checkpoint_interval=checkpoint_interval,
-                    complex_pdb_fn=solvated_complex_structure_fn,
-                    complex_xml_fn=solvated_complex_omm_serialized_fn,
-                    solvent_pdb_fn=solvated_ligand_structure_fn,
-                    solvent_xml_fn=solvated_ligand_omm_serialized_fn,
-                    ligand_resname=opt['ligand_resname'],
-                    solvent_dsl=solvent_str_names,
-                    sampler=opt['sampler'],
-                    restraints=opt['restraints'],
-                    protocol=opt['protocol']
-                )
+                if opt['sampler'] == 'repex':
+                    opt['protocol'] = opt['protocol_repex']
+                elif opt['sampler'] == 'sams':
+                    opt['protocol'] = opt['protocol_sams']
+                else:
+                    raise ValueError("The selected sampler method is not currently supported: {}".format(opt['sampler']))
 
-                opt['yank_template'] = yank_template
+                yankutils.run_yank_binding(opt)
 
-                yankutils.run_yank(opt)
+                if current_iterations == 0:
 
-                if new_iterations == opt['iterations']:
-                    exp_dir = os.path.join(output_directory, "experiments")
+                    iterations_per_cube = yankutils.calculate_iteration_time(output_directory, opt['new_iterations'])
 
-                    experiment_to_analyze = ExperimentAnalyzer(exp_dir)
-                    analysis = experiment_to_analyze.auto_analyze()
+                    if iterations_per_cube == 0:
+                        raise ValueError("Total running time per cube > max Orion running time per cube")
 
-                    # Calculate binding free energy and its error in kcal/mol
-                    DeltaG_binding = analysis['free_energy']['free_energy_diff_unit']. \
-                                         in_units_of(unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
-                    dDeltaG_binding = analysis['free_energy']['free_energy_diff_error_unit']. \
-                                          in_units_of(unit.kilocalorie_per_mole) / unit.kilocalorie_per_mole
+                # Run the analysis
+                if opt['new_iterations'] == opt['iterations']:
 
-                    # Create OE Field to save the Solvation Free Energy in kcal/mol
-                    DG_Field = OEField('Binding Affinity', Types.Float,
+                    DeltaG_binding, dDeltaG_binding = yankutils.run_yank_analysis(opt)
+
+                    # Create OE Field to save the solvation Free Energy in kcal/mol
+                    DG_Field = OEField('Solvation FE', Types.Float,
                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
-                    dG_Field = OEField('Binding Affinity Error', Types.Float,
+                    dG_Field = OEField('Solvation FE Error', Types.Float,
                                        meta=OEFieldMeta().set_option(Meta.Units.Energy.kCal_per_mol))
 
                     record.set_value(DG_Field, DeltaG_binding)
                     record.set_value(dG_Field, dDeltaG_binding)
-
-                    opt_1 = '--store={}'.format(exp_dir)
-
-                    result_fn = os.path.join(output_directory, 'results.html')
-                    opt_2 = '--output={}'.format(result_fn)
-
-                    opt_3 = '--format=html'
-
-                    try:
-
-                        os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-
-                        subprocess.check_call(['yank', 'analyze', 'report', opt_1, opt_2, opt_3])
-
-                        with open(result_fn, 'r') as f:
-                            result_str = f.read()
-
-                        record.set_value(Fields.yank_analysis, result_str)
-
-                        # Upload Floe Report
-                        if in_orion():
-                            session = OrionSession()
-
-                            file_upload = File.upload(session,
-                                                      "{} Yank Report".format(opt['system_title']),
-                                                      result_fn)
-
-                            session.tag_resource(file_upload, "floe_report")
-
-                            job_id = environ.get('ORION_JOB_ID')
-
-                            if job_id:
-                                session.tag_resource(file_upload, "Job {}".format(job_id))
-
-                    except subprocess.SubprocessError:
-                        opt['Logger'].warn("The result file have not been generated")
 
                 # Tar the Yank temp dir with its content:
                 tar_fn = os.path.basename(output_directory + "_" + opt['system_title']) + '.tar.gz'
@@ -943,7 +883,7 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                     archive.add(output_directory, arcname='.', recursive=True)
 
                 # Create Large file object if required
-                lf = omm_utils.upload(tar_fn)
+                lf = omm_utils.upload_file(tar_fn, opt['system_title']+'.tar.gz')
 
                 str_logger += '\n' + '-' * 32 + ' SIMULATION ' + '-' * 32
 
@@ -952,7 +892,7 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
                 md_stage_record = MDRecords.MDStageRecord(MDStageNames.FEC,
                                                           MDRecords.MDSystemRecord(complex,
-                                                                                   solvated_complex_parmed_structure),
+                                                                                   mdstate),
                                                           log=str_logger,
                                                           trajectory=lf)
                 if current_iterations != 0:
@@ -964,8 +904,14 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
                     record.set_value(Fields.md_stages, [md_stage_record])
                     record.set_value(Fields.id, opt['system_id'])
                     record.set_value(Fields.title, opt['system_title'])
+                    record.set_value(Fields.pmd_structure, solvated_complex_parmed_structure)
 
-            record.set_value(current_iteration_field, new_iterations)
+                    iterations_per_cube_field = OEField("iterations_per_cube", Types.Int)
+                    record.set_value(iterations_per_cube_field, iterations_per_cube)
+                    self.log.info("[{}] iterations per cube saved on the record: {}".format(self.title,
+                                                                                            iterations_per_cube))
+
+            record.set_value(current_iteration_field, opt['new_iterations'])
             record.set_value(Fields.primary_molecule, complex)
 
             self.success.emit(record)
@@ -999,7 +945,7 @@ class YankProxyCube(OERecordComputeCube):
 
     iterations = parameter.IntegerParameter(
         'iterations',
-        default=13,
+        default=1000,
         help_text="Total number of iterations")
 
     cycle_out_port = RecordOutputPort("cycle_out_port")
@@ -1014,24 +960,37 @@ class YankProxyCube(OERecordComputeCube):
         current_iteration_field = OEField("current_iterations", Types.Int)
 
         try:
+            if not record.has_value(Fields.title):
+                self.opt['Logger'].warn("Missing record Title field")
+
+                if not record.has_value(Fields.primary_molecule):
+                    raise ValueError("The Primary Molecule is missing field")
+
+                complex = record.get_value(Fields.primary_molecule)
+                system_title = complex.GetTitle()[0:12]
+            else:
+                system_title = record.get_value(Fields.title)
+
+            self.opt['Logger'].info("{} System Title {}".format(self.title, system_title))
+
             if port == 'intake':
                 record.set_value(current_iteration_field, 0)
                 current_iteration = record.get_value(current_iteration_field)
-                self.opt['Logger'].warn(">>>>>>>>>>> PROXY current iterations {}".format(current_iteration))
-                self.opt['Logger'].warn(">>>>>>>>>>> PROXY max iterations {}".format(self.opt['iterations']))
-                self.opt['Logger'].warn(">>>>>>>>>>> Forwarding to Cycle...")
+                self.opt['Logger'].info("{} current iterations {}".format(self.title, current_iteration))
+                self.opt['Logger'].info("{}  max iterations {}".format(self.title, self.opt['iterations']))
+                self.opt['Logger'].info("{} Forwarding to Cycle...".format(self.title))
                 self.cycle_out_port.emit(record)
             else:  # Cycle Port
                 current_iteration = record.get_value(current_iteration_field)
 
-                self.opt['Logger'].warn(">>>>>>>>>>> PROXY current iterations {}".format(current_iteration))
-                self.opt['Logger'].warn(">>>>>>>>>>> PROXY max iterations {}".format(self.opt['iterations']))
+                self.opt['Logger'].info("{} PROXY current iterations {}".format(self.title, current_iteration))
+                self.opt['Logger'].info("{} PROXY max iterations {}".format(self.title, self.opt['iterations']))
 
                 if current_iteration == self.opt['iterations']:
-                    self.opt['Logger'].warn(">>>>>>>>>>> Finishing...")
+                    self.opt['Logger'].info("{} Finishing...".format(self.title))
                     self.success.emit(record)
                 else:
-                    self.opt['Logger'].warn(">>>>>>>>>>> Forwarding to Cycle...")
+                    self.opt['Logger'].warn("{} Forwarding to Cycle...".format(self.title))
                     self.cycle_out_port.emit(record)
         except:
             # Attach an error message to the molecule that failed

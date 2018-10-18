@@ -16,9 +16,15 @@
 # or its use.
 
 import os
+
 from orionclient.session import OrionSession
-from artemis.wrappers import WorkFloeWrapper, DatasetWrapper, OutputDatasetWrapper
+
+from artemis.wrappers import (WorkFloeWrapper,
+                              DatasetWrapper,
+                              OutputDatasetWrapper)
+
 from artemis.test import FloeTestCase
+
 from artemis.decorators import package
 
 import pytest
@@ -36,11 +42,12 @@ session = OrionSession()
 @package(PACKAGE_DIR)
 class TestYankBindingFloes(FloeTestCase):
 
+    @pytest.mark.floetest
     @pytest.mark.slow
     def test_yank_binding_repex_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "Binding_free_energy_repex.py"),
-            run_timeout=8000,
+            run_timeout=12000,
             queue_timeout=1200
         )
 
@@ -59,25 +66,29 @@ class TestYankBindingFloes(FloeTestCase):
         )
 
         output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "ligands": ligand_file.identifier,
                     "protein": protein_file.identifier,
-                    "iterations": 5,
-                    "out": output_file.identifier
+                    "iterations": 13,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 }
             }
         )
 
         self.assertWorkFloeComplete(workfloe)
 
+
+    @pytest.mark.floetest
     @pytest.mark.slow
     def test_yank_binding_repex_multi_ligs_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "Binding_free_energy_repex.py"),
-            run_timeout=8000,
+            run_timeout=12000,
             queue_timeout=1200
         )
 
@@ -96,25 +107,31 @@ class TestYankBindingFloes(FloeTestCase):
         )
 
         output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
 
         workfloe.start(
             {
                 "promoted": {
                     "ligands": ligand_file.identifier,
                     "protein": protein_file.identifier,
-                    "iterations": 5,
-                    "out": output_file.identifier
+
+                    "iterations": 13,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
+
                 }
             }
         )
 
         self.assertWorkFloeComplete(workfloe)
 
+    @pytest.mark.floetest
     @pytest.mark.slow
     def test_yank_binding_sams_floe(self):
         workfloe = WorkFloeWrapper.get_workfloe(
             os.path.join(FLOES_DIR, "Binding_free_energy_sams.py"),
-            run_timeout=8000,
+            run_timeout=12000,
             queue_timeout=1200
         )
 
@@ -133,14 +150,56 @@ class TestYankBindingFloes(FloeTestCase):
         )
 
         output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
 
         workfloe.start(
             {
                 "promoted": {
                     "ligands": ligand_file.identifier,
                     "protein": protein_file.identifier,
-                    "iterations": 5,
-                    "out": output_file.identifier
+                    "iterations": 13,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
+                }
+            }
+        )
+
+        self.assertWorkFloeComplete(workfloe)
+
+    @pytest.mark.floetest
+    @pytest.mark.slow
+    def test_yank_binding_sams_multi_ligs_floe(self):
+        workfloe = WorkFloeWrapper.get_workfloe(
+            os.path.join(FLOES_DIR, "Binding_free_energy_sams.py"),
+            run_timeout=12000,
+            queue_timeout=1200
+        )
+
+        ligand_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "Thrombin3Series_5ligs.oeb"
+            )
+        )
+
+        protein_file = DatasetWrapper.get_dataset(
+            os.path.join(
+                FILE_DIR,
+                "Thrombin.pdb"
+            )
+        )
+
+        output_file = OutputDatasetWrapper(extension=".oedb")
+        fail_output_file = OutputDatasetWrapper(extension=".oedb")
+
+        workfloe.start(
+            {
+                "promoted": {
+                    "ligands": ligand_file.identifier,
+                    "protein": protein_file.identifier,
+                    "iterations": 13,
+                    "out": output_file.identifier,
+                    "fail": fail_output_file.identifier
                 }
             }
         )

@@ -23,9 +23,9 @@ from floe.test import CubeTestRunner
 
 import pytest
 
-from MDCubes.OpenMMCubes.cubes import (OpenMMminimizeCube,
-                                       OpenMMNvtCube,
-                                       OpenMMNptCube)
+from MDCubes.cubes import (OpenMMminimizeCube,
+                           OpenMMNvtCube,
+                           OpenMMNptCube)
 
 from simtk import unit, openmm
 
@@ -37,19 +37,16 @@ from cuberecord.cube_testing import OEMolRecordStream
 
 from Standards import Fields
 
-import MDCubes.OpenMMCubes.utils as utils
-
 
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
 
 
-def calculate_eng(mdData):
+def calculate_eng(mdstate, parmed_structure):
     # Extract starting MD data
-    topology = mdData.topology
-    positions = mdData.positions
-    box = mdData.box
-    parmed_structure = mdData.structure
+    topology = parmed_structure.topology
+    positions = mdstate.get_positions()
+    box = mdstate.get_box_vectors()
 
     # OpenMM system
     system = parmed_structure.createSystem(nonbondedMethod=app.PME,
@@ -76,14 +73,13 @@ def calculate_eng(mdData):
     return peng
 
 
-def calculate_VT(mdData):
+def calculate_VT(mdstate, parmed_structure):
 
     # Extract starting MD data
-    topology = mdData.topology
-    positions = mdData.positions
-    velocities = mdData.velocities
-    box = mdData.box
-    parmed_structure = mdData.structure
+    topology = parmed_structure.topology
+    positions = mdstate.get_positions()
+    velocities = mdstate.get_velocities()
+    box = mdstate.get_box_vectors()
 
     volume = box[0][0] * box[1][1] * box[2][2]
 
@@ -154,12 +150,15 @@ class MinimizationCubeTester(unittest.TestCase):
 
             md_system = stage.get_value(Fields.md_system)
 
-            parmed_structure = md_system.get_value(Fields.structure)
+            mdstate = md_system.get_value(Fields.md_state)
 
-            mdData = utils.MDData(parmed_structure)
+            parmed_structure = record.get_value(Fields.pmd_structure)
+            parmed_structure.positions = mdstate.get_positions()
+            parmed_structure.box_vectors = mdstate.get_box_vectors()
+            parmed_structure.velocities = mdstate.get_velocities()
 
-            # Calculate starting potential energy
-            eng_i = calculate_eng(mdData)
+            # Calculate the initial potential energy
+            eng_i = calculate_eng(mdstate, parmed_structure)
 
         # Process the molecules
         self.cube.process(record, self.cube.intake.name)
@@ -173,18 +172,21 @@ class MinimizationCubeTester(unittest.TestCase):
         record = self.runner.outputs["success"].get()
 
         stages = record.get_value(Fields.md_stages)
-        self.assertEqual(len(stages), 1)
+        self.assertEqual(len(stages), 2)
 
         stage = stages[-1]
 
         md_system = stage.get_value(Fields.md_system)
 
-        parmed_structure = md_system.get_value(Fields.structure)
+        mdstate = md_system.get_value(Fields.md_state)
 
-        mdData = utils.MDData(parmed_structure)
+        parmed_structure = record.get_value(Fields.pmd_structure)
+        parmed_structure.positions = mdstate.get_positions()
+        parmed_structure.box_vectors = mdstate.get_box_vectors()
+        parmed_structure.velocities = mdstate.get_velocities()
 
         # Calculate the final potential energy
-        eng_f = calculate_eng(mdData)
+        eng_f = calculate_eng(mdstate, parmed_structure)
 
         self.assertLess(eng_f, eng_i)
 
@@ -230,23 +232,26 @@ class NVTCubeTester(unittest.TestCase):
         record = self.runner.outputs["success"].get()
 
         stages = record.get_value(Fields.md_stages)
-        self.assertEqual(len(stages), 2)
+        self.assertEqual(len(stages), 4)
 
         stage = stages[-1]
 
         md_system = stage.get_value(Fields.md_system)
 
-        parmed_structure = md_system.get_value(Fields.structure)
+        mdstate = md_system.get_value(Fields.md_state)
 
-        mdData = utils.MDData(parmed_structure)
+        parmed_structure = record.get_value(Fields.pmd_structure)
+        parmed_structure.positions = mdstate.get_positions()
+        parmed_structure.box_vectors = mdstate.get_box_vectors()
+        parmed_structure.velocities = mdstate.get_velocities()
 
         # Calculate final volume and temperature
-        vol_f, temp_f = calculate_VT(mdData)
+        vol_f, temp_f = calculate_VT(mdstate, parmed_structure)
 
         # Check 3*std volume
         # Average volume and its standard deviation (in nm^3) measured along
         # one 5ns run for the selected system
-        avg_volume = 633.7547125 * (unit.nanometers ** 3)
+        avg_volume = 634.5680811 * (unit.nanometers ** 3)
         std_volume = 0.000001
 
         self.assertAlmostEqual(avg_volume / (unit.nanometers ** 3),
@@ -256,8 +261,8 @@ class NVTCubeTester(unittest.TestCase):
         # Check temperature
         # Average temperature and its standard deviation (in K) measured along
         # one 5ns run for the selected system
-        avg_temperature = 300.0187397 * unit.kelvin
-        std_temperature = 1.163189305
+        avg_temperature = 300.0517613 * unit.kelvin
+        std_temperature = 1.157850765
         self.assertAlmostEqual(avg_temperature / unit.kelvin,
                                temp_f.in_units_of(unit.kelvin) / unit.kelvin,
                                delta=3 * std_temperature)
@@ -313,25 +318,28 @@ class NPTCubeTester(unittest.TestCase):
         record = self.runner.outputs["success"].get()
 
         stages = record.get_value(Fields.md_stages)
-        self.assertEqual(len(stages), 2)
+        self.assertEqual(len(stages), 4)
 
         stage = stages[-1]
 
         md_system = stage.get_value(Fields.md_system)
 
-        parmed_structure = md_system.get_value(Fields.structure)
+        mdstate = md_system.get_value(Fields.md_state)
 
-        mdData = utils.MDData(parmed_structure)
+        parmed_structure = record.get_value(Fields.pmd_structure)
+        parmed_structure.positions = mdstate.get_positions()
+        parmed_structure.box_vectors = mdstate.get_box_vectors()
+        parmed_structure.velocities = mdstate.get_velocities()
 
         # Calculate final volume and temperature
-        vol_f, temp_f = calculate_VT(mdData)
+        vol_f, temp_f = calculate_VT(mdstate, parmed_structure)
 
         # Check 3*std volume
         # Average volume and its standard deviation (in nm^3) measured along
         # one 5ns run for the selected system
 
-        avg_volume = 633.0247292 * (unit.nanometers ** 3)
-        std_volume = 1.202811485
+        avg_volume = 632.9923452 * (unit.nanometers ** 3)
+        std_volume = 1.200821012
 
         self.assertAlmostEqual(avg_volume / (unit.nanometers ** 3),
                                vol_f.in_units_of(unit.nanometers ** 3) / (unit.nanometers ** 3),
@@ -340,8 +348,8 @@ class NPTCubeTester(unittest.TestCase):
         # Check temperature
         # Average temperature and its standard deviation (in K) measured along
         # one 5ns run for the selected system
-        avg_temperature = 300.0066236 * unit.kelvin
-        std_temperature = 1.175174286
+        avg_temperature = 300.0278579 * unit.kelvin
+        std_temperature = 1.189319355
         self.assertAlmostEqual(avg_temperature / unit.kelvin,
                                temp_f.in_units_of(unit.kelvin) / unit.kelvin,
                                delta=3 * std_temperature)
