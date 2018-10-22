@@ -154,10 +154,7 @@ ofs.promote_parameter("data_out", promoted_name="out")
 job.add_cube(ofs)
 
 fail = DatasetWriterCube('fail', title='Failures')
-<<<<<<< HEAD
-=======
 fail.promote_parameter("data_out", promoted_name="fail")
->>>>>>> gcalabro_data_record
 job.add_cube(fail)
 
 iligs.success.connect(chargelig.intake)
