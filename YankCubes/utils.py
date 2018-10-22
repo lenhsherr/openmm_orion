@@ -238,7 +238,7 @@ def run_yank_analysis(opt):
             session = OrionSession()
 
             file_upload = File.upload(session,
-                                      "{}.html".format(opt['system_tile']),
+                                      "{}.html".format(opt['system_title']),
                                       result_fn)
 
             session.tag_resource(file_upload, "floe_report")
