@@ -31,6 +31,10 @@ import pytest
 
 import MDOrion
 
+from openeye import oechem
+
+from datarecord import read_mol_record
+
 PACKAGE_DIR = os.path.dirname(os.path.dirname(MDOrion.__file__))
 
 FILE_DIR = os.path.join(PACKAGE_DIR, "tests", "data")
@@ -82,6 +86,22 @@ class TestYankBindingFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
+        fail_ifs = oechem.oeifstream()
+        self.assertTrue(fail_ifs.open(fail_output_file.path))
+        fail_ifs.close()
+
+        records_fail = []
+
+        while True:
+            record_fail = read_mol_record(fail_ifs)
+            if record_fail is None:
+                break
+            records_fail.append(record_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
 
     @pytest.mark.floetest
     @pytest.mark.slow
@@ -126,6 +146,23 @@ class TestYankBindingFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
+        fail_ifs = oechem.oeifstream()
+        self.assertTrue(fail_ifs.open(fail_output_file.path))
+        fail_ifs.close()
+
+        records_fail = []
+
+        while True:
+            record_fail = read_mol_record(fail_ifs)
+            if record_fail is None:
+                break
+            records_fail.append(record_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
     @pytest.mark.floetest
     @pytest.mark.slow
     def test_yank_binding_sams_floe(self):
@@ -166,6 +203,23 @@ class TestYankBindingFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
+        fail_ifs = oechem.oeifstream()
+        self.assertTrue(fail_ifs.open(fail_output_file.path))
+        fail_ifs.close()
+
+        records_fail = []
+
+        while True:
+            record_fail = read_mol_record(fail_ifs)
+            if record_fail is None:
+                break
+            records_fail.append(record_fail)
+        fail_ifs.close()
+
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
+
     @pytest.mark.floetest
     @pytest.mark.slow
     def test_yank_binding_sams_multi_ligs_floe(self):
@@ -206,39 +260,20 @@ class TestYankBindingFloes(FloeTestCase):
 
         self.assertWorkFloeComplete(workfloe)
 
-    @pytest.mark.slow
-    def test_yank_binding_sams_multi_ligs_floe(self):
-        workfloe = WorkFloeWrapper.get_workfloe(
-            os.path.join(FLOES_DIR, "Binding_free_energy_sams.py"),
-            run_timeout=8000,
-            queue_timeout=1200
-        )
+        fail_ifs = oechem.oeifstream()
+        self.assertTrue(fail_ifs.open(fail_output_file.path))
+        fail_ifs.close()
 
-        ligand_file = DatasetWrapper.get_dataset(
-            os.path.join(
-                FILE_DIR,
-                "Thrombin3Series_5ligs.oeb"
-            )
-        )
+        records_fail = []
 
-        protein_file = DatasetWrapper.get_dataset(
-            os.path.join(
-                FILE_DIR,
-                "Thrombin.pdb"
-            )
-        )
+        while True:
+            record_fail = read_mol_record(fail_ifs)
+            if record_fail is None:
+                break
+            records_fail.append(record_fail)
+        fail_ifs.close()
 
-        output_file = OutputDatasetWrapper(extension=".oedb")
+        count = len(records_fail)
+        # The fail record must be empty
+        self.assertEqual(count, 0)
 
-        workfloe.start(
-            {
-                "promoted": {
-                    "ligands": ligand_file.identifier,
-                    "protein": protein_file.identifier,
-                    "iterations": 5,
-                    "out": output_file.identifier
-                }
-            }
-        )
-
-        self.assertWorkFloeComplete(workfloe)

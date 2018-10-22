@@ -199,8 +199,8 @@ equil3.set_parameters(trajectory_interval=0.0)
 equil3.set_parameters(reporter_interval=0.001)
 equil3.set_parameters(suffix='equil3')
 
-# ofs = DatasetWriterCube('ofs', title='Out')
-# ofs.promote_parameter("data_out", promoted_name="out")
+ofs = DatasetWriterCube('ofs', title='Out')
+ofs.promote_parameter("data_out", promoted_name="out")
 
 fail = DatasetWriterCube('fail', title='Failures')
 fail.promote_parameter("data_out", promoted_name="fail")
@@ -211,7 +211,7 @@ reportCube = MDTrajAnalysisClusterReport("MDTrajAnalysisClusterReport")
 
 
 job.add_cubes(iligs, ligset, iprot, protset, chargelig, complx, solvate, ff,
-              minComplex, warmup, equil1, equil2, equil3, prod, fail,
+              minComplex, warmup, equil1, equil2, equil3, prod, ofs, fail,
               trajCube, clusCube, reportCube)
 
 
@@ -229,6 +229,7 @@ equil1.success.connect(equil2.intake)
 equil2.success.connect(equil3.intake)
 equil3.success.connect(prod.intake)
 prod.failure.connect(fail.intake)
+prod.success.connect(ofs.intake)
 prod.success.connect(trajCube.intake)
 trajCube.success.connect(clusCube.intake)
 clusCube.success.connect(reportCube.intake)
