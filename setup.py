@@ -11,6 +11,7 @@
 import re
 import ast
 
+
 from setuptools import setup, find_packages
 
 try:  # for pip >= 10
@@ -24,13 +25,13 @@ def get_reqs(reqs):
 
 
 try:
-    install_reqs = get_reqs(parse_requirements("requirements.txt"))
+    install_reqs = get_reqs(parse_requirements("requirements_dev.txt"))
 except TypeError:
     try:  # For pip >= 10
         from pip._internal.download import PipSession
     except ImportError:  # For pip <= 9.0.3
         from pip.download import PipSession
-    install_reqs = get_reqs(parse_requirements("requirements.txt", session=PipSession()))
+    install_reqs = get_reqs(parse_requirements("requirements_dev.txt", session=PipSession()))
 
 
 def get_version():
@@ -42,11 +43,11 @@ def get_version():
 
 setup(
     name="MDOrion",
-    version='0.7.11',
+    version=get_version(),
     packages=find_packages(exclude=['tests*']),
     include_package_data=True,
-    author="Christopher Bayly, Gaetano Calabro, Nathan M. Lim, John Chodera, ",
-    author_email="bayly@eyesopen.com",
+    author="Gaetano Calabro, Christopher Bayly",
+    author_email="gcalabro@eyesopen.com",
     description='Orion cubes to perform MD and MD analysis',
     install_requires=install_reqs,
     license='Other/Proprietary License',

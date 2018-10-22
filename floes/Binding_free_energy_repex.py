@@ -150,7 +150,7 @@ abfe.promote_parameter('restraints', promoted_name='restraints',
                        description='Select the restraint types to apply to the ligand during the '
                                    'alchemical decoupling. Choices: harmonic, boresch')
 abfe.promote_parameter('verbose', promoted_name='verbose', default=False, description="Yank verbose mode on/off")
-abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None)
+# abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None)
 abfe.set_parameters(sampler='repex')
 abfe.promote_parameter('protocol_repex', promoted_name='protocol_repex', default='windows_29',
                        description="Select the Repex window schedule protocol")

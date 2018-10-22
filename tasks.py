@@ -18,6 +18,7 @@
 import os
 import shutil
 from invoke import task, run
+from json import loads, dump
 
 @task
 def flake8(ctx):
@@ -77,6 +78,25 @@ def clean(ctx):
     elif os.path.isdir(egg_path):
         shutil.rmtree(egg_path)
     shutil.rmtree(".pytest_cache", ignore_errors=True)
+
+@task
+def newversion(ctx, new_version):
+    fn = os.path.join("./MDOrion", "__init__.py")
+
+    with open(fn, "r") as f:
+        lines = f.readlines()
+
+    lines = ["__version__ = '{}'\n".format(new_version) if '__version__' in line else line for line in lines]
+
+    with open(fn, "w") as f:
+        f.writelines(lines)
+
+    spec = loads(open('manifest.json', 'r').read())
+
+    import MDOrion
+
+    spec['version'] = MDOrion.__version__
+    dump(spec, open('manifest.json', 'w'), sort_keys=True, indent=4)
 
 
 @task

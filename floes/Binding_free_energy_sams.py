@@ -146,10 +146,9 @@ abfe.promote_parameter('restraints', promoted_name='restraints',
                        description='Select the restraint types to apply to the ligand during the '
                                    'alchemical decoupling. Choices: harmonic, boresch')
 abfe.promote_parameter('verbose', promoted_name='verbose', default=False, description="Yank verbose mode on/off")
-abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None)
+# abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None)
 abfe.set_parameters(sampler='sams')
-abfe.promote_parameter('protocol_sams', promoted_name='protocol_sams', default='windows_sams',
-                       description="Select the Sams window schedule protocol")
+abfe.promote_parameter('protocol_sams', promoted_name='protocol_sams', default='windows_sams')
 job.add_cube(abfe)
 
 # Minimization
