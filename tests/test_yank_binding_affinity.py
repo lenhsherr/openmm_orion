@@ -87,9 +87,6 @@ class TestYankBindingFloes(FloeTestCase):
         self.assertWorkFloeComplete(workfloe)
 
         fail_ifs = oechem.oeifstream()
-        self.assertTrue(fail_ifs.open(fail_output_file.path))
-        fail_ifs.close()
-
         records_fail = []
 
         while True:
@@ -147,9 +144,6 @@ class TestYankBindingFloes(FloeTestCase):
         self.assertWorkFloeComplete(workfloe)
 
         fail_ifs = oechem.oeifstream()
-        self.assertTrue(fail_ifs.open(fail_output_file.path))
-        fail_ifs.close()
-
         records_fail = []
 
         while True:
@@ -204,9 +198,6 @@ class TestYankBindingFloes(FloeTestCase):
         self.assertWorkFloeComplete(workfloe)
 
         fail_ifs = oechem.oeifstream()
-        self.assertTrue(fail_ifs.open(fail_output_file.path))
-        fail_ifs.close()
-
         records_fail = []
 
         while True:
@@ -261,9 +252,6 @@ class TestYankBindingFloes(FloeTestCase):
         self.assertWorkFloeComplete(workfloe)
 
         fail_ifs = oechem.oeifstream()
-        self.assertTrue(fail_ifs.open(fail_output_file.path))
-        fail_ifs.close()
-
         records_fail = []
 
         while True:
