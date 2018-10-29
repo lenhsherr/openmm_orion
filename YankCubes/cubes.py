@@ -116,7 +116,6 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
 
     ligand_res_name = parameter.StringParameter(
         'ligand_res_name',
-        required=True,
         default='LIG',
         help_text='Ligand residue name')
 

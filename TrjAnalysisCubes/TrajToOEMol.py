@@ -114,9 +114,9 @@ class TrajToOEMolCube(ParallelMixin, OERecordComputeCube):
                 # Extract the Setup Topology
                 md_stage0_record = md_stages[0]
 
-                setupName = utl.RequestOEFieldType(md_stage0_record, Fields.stage_name)
+                setupType = utl.RequestOEFieldType(md_stage0_record, Fields.stage_type)
 
-                if setupName != 'SETUP':
+                if setupType != 'SETUP':
                     raise ValueError('Cannot find the SETUP stage')
 
                 md_system = utl.RequestOEFieldType(md_stage0_record, Fields.md_system)
