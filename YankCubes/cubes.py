@@ -114,8 +114,8 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
         default=10.0,
         help_text="The non-bonded cutoff in angstroms")
 
-    ligand_res_name = parameter.StringParameter(
-        'ligand_res_name',
+    lig_res_name = parameter.StringParameter(
+        'lig_res_name',
         default='LIG',
         help_text='Ligand residue name')
 
@@ -577,8 +577,8 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
         default=10.0,
         help_text="The non-bonded cutoff in angstroms")
 
-    ligand_resname = parameter.StringParameter(
-        'ligand_resname',
+    lig_res_name = parameter.StringParameter(
+        'lig_res_name',
         default='LIG',
         help_text='The decoupling ligand residue name')
 

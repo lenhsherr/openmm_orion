@@ -87,6 +87,7 @@ chargelig.promote_parameter('charge_ligands', promoted_name='charge_ligands',
 job.add_cube(chargelig)
 
 ligset = LigandSetting("LigandSetting", title="Ligand Setting")
+ligset.set_parameters(lig_res_name='LIG')
 job.add_cube(ligset)
 
 # Protein Reading cube. The protein prefix parameter is used to select a name for the
@@ -104,6 +105,7 @@ job.add_cube(protset)
 
 # Complex cube used to assemble the ligands and the solvated protein
 complx = ComplexPrepCube("Complex", title="Complex Preparation")
+complx.set_parameters(lig_res_name='LIG')
 job.add_cube(complx)
 
 # The solvation cube is used to solvate the system and define the ionic strength of the solution
@@ -121,6 +123,7 @@ job.add_cube(solvateComplex)
 ffComplex = ForceFieldCube("ForceFieldComplex", title="Complex Parametrization")
 ffComplex.promote_parameter('ligand_forcefield', promoted_name='ligand_forcefield', default='GAFF2')
 ffComplex.promote_parameter('other_forcefield', promoted_name='other_forcefield', default='GAFF2')
+ffComplex.set_parameters(lig_res_name='LIG')
 job.add_cube(ffComplex)
 
 # Add YANK Cube
@@ -145,6 +148,7 @@ abfe.promote_parameter('restraints', promoted_name='restraints',
                         default='boresch',
                        description='Select the restraint types to apply to the ligand during the '
                                    'alchemical decoupling. Choices: harmonic, boresch')
+abfe.set_parameters(lig_res_name='LIG')
 abfe.promote_parameter('verbose', promoted_name='verbose', default=False, description="Yank verbose mode on/off")
 # abfe.promote_parameter('user_yank_yaml_file', promoted_name='yaml', default=None)
 abfe.set_parameters(sampler='sams')

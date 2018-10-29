@@ -18,6 +18,10 @@ import mdtraj as md
 
 import os
 
+from orionclient.session import (OrionSession,
+                                 get_profile_config,
+                                 get_session)
+
 
 @click.group(
     context_settings={
@@ -34,7 +38,7 @@ def main(ctx):
 @click.option("--id", help="Record ID number", default="all")
 @click.option("--profile", help="OCLI profile name", default="default")
 @click.pass_context
-def dataset(ctx, filename, id, profile):
+def dataset(ctx, filename, id, profile=None, max_retries=2):
     """ Records Extraction"""
 
     ctx.obj['filename'] = filename
@@ -57,8 +61,22 @@ def dataset(ctx, filename, id, profile):
             ctx.obj['records'] = [records[int(id)]]
         else:
             raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
-
-    os.environ['ORION_PROFILE'] = profile
+    # TODO
+    # if profile == "default" and os.environ.get("ORION_PROFILE") is not None:
+    #     profile = os.environ["ORION_PROFILE"]
+    # profile_config = get_profile_config(profile=profile)
+    #
+    # ctx.obj['profile'] = profile
+    # ctx.obj['session'] = OrionSession(
+    #         config=profile_config,
+    #         requests_session=get_session({404: max_retries}))
+    #
+    # ctx.obj['credentials'] = profile_config
+    #
+    # if ctx.obj["credentials"] is not None:
+    #     ctx.obj['session'].config = ctx.obj["credentials"]
+    # else:
+    #     click.secho("Unable to find credentials", fg='red', err=True)
 
 
 @dataset.command("trajectory")
@@ -114,6 +132,10 @@ def trajectory_extraction(ctx, format, stgn, fixname):
                             suffix = log_split[i+2]
                             break
                 fnt = fn + '-' + suffix + '.' + format
+
+                # from orionclient import File
+
+                # TODO Profile
                 trj_id.download_to_file(fnt)
             else:
                 print("No MD trajectory found in the selected stage record {}".format(stage.get_value(Fields.stage_name)))

@@ -78,20 +78,17 @@ class ForceFieldCube(ParallelMixin, OERecordComputeCube):
 
     ligand_forcefield = parameter.StringParameter(
         'ligand_forcefield',
-        required=True,
         default='GAFF',
         choices=['GAFF', 'GAFF2', 'SMIRNOFF'],
         help_text='Force field to parametrize the ligand')
 
-    ligand_res_name = parameter.StringParameter(
-        'ligand_res_name',
-        required=True,
+    lig_res_name = parameter.StringParameter(
+        'lig_res_name',
         default='LIG',
         help_text='Ligand residue name')
 
     other_forcefield = parameter.StringParameter(
         'other_forcefield',
-        required=True,
         default='GAFF',
         choices=['GAFF', 'GAFF2', 'SMIRNOFF'],
         help_text='Force field used to parametrize other molecules not recognized by the protein force field')
