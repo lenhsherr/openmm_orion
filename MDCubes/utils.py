@@ -148,7 +148,7 @@ def upload_file(filename, orion_name):
 
 def download_file(file_id, filename, delete=False):
 
-    if in_orion():
+    if in_orion() or isinstance(file_id, File):
         file_id.download_to_file(filename)
 
         fn_local = filename

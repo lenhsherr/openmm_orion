@@ -31,7 +31,7 @@ from openeye import oechem
 
 from oeommtools import data_utils as pack_utils
 
-from Standards import (MDStageNames,
+from Standards import (MDStageTypes,
                        Fields,
                        MDRecords)
 
@@ -231,7 +231,7 @@ class ForceFieldCube(ParallelMixin, OERecordComputeCube):
 
             mdstate = MDState(system_structure)
 
-            md_stage = MDRecords.MDStageRecord(MDStageNames.SETUP,
+            md_stage = MDRecords.MDStageRecord(self.title, MDStageTypes.SETUP,
                                                MDRecords.MDSystemRecord(system_reassembled, mdstate))
 
             record.set_value(Fields.md_stages, [md_stage])

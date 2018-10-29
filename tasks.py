@@ -41,7 +41,7 @@ def testfloes(ctx):
     run tests
     """
     clean(ctx)
-    run("py.test -s -v -m ./tests ")
+    run("py.test -s -v ./tests ")
 
 
 @task

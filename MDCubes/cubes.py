@@ -27,14 +27,11 @@ import MDCubes.utils as utils
 
 from openeye import oechem
 
-import MDCubes.OpenMMCubes.simtools as simtools
-
 from Standards import (Fields,
                        MDRecords,
-                       MDStageNames)
+                       MDStageTypes)
 
-from MDCubes.utils import (MDState,
-                           md_simulation)
+from MDCubes.utils import md_simulation
 
 import copy
 
@@ -283,7 +280,7 @@ class OpenMMminimizeCube(ParallelMixin, OERecordComputeCube):
 
             record.set_value(Fields.primary_molecule, system)
 
-            md_stage_record = MDRecords.MDStageRecord(MDStageNames.MINIMIZATION,
+            md_stage_record = MDRecords.MDStageRecord(self.title, MDStageTypes.MINIMIZATION,
                                                       MDRecords.MDSystemRecord(system, new_mdstate),
                                                       log=opt['str_logger'])
 
@@ -579,7 +576,7 @@ class OpenMMNvtCube(ParallelMixin, OERecordComputeCube):
 
                 opt['str_logger'] += '\n'+str_logger
 
-            md_stage_record = MDRecords.MDStageRecord(MDStageNames.NVT,
+            md_stage_record = MDRecords.MDStageRecord(self.title, MDStageTypes.NVT,
                                                       MDRecords.MDSystemRecord(system, new_mdstate),
                                                       log=opt['str_logger'], trajectory=lf)
 
@@ -878,7 +875,7 @@ class OpenMMNptCube(ParallelMixin, OERecordComputeCube):
 
                 opt['str_logger'] += '\n' + str_logger
 
-            md_stage_record = MDRecords.MDStageRecord(MDStageNames.NPT,
+            md_stage_record = MDRecords.MDStageRecord(self.title, MDStageTypes.NPT,
                                                       MDRecords.MDSystemRecord(system, new_mdstate),
                                                       log=opt['str_logger'], trajectory=lf)
 

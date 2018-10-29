@@ -32,7 +32,7 @@ from cuberecord import Types as TypesCR
 
 # ------------ Stage Standard Names ------------- #
 
-class MDStageNames:
+class MDStageTypes:
     SETUP = 'SETUP'
     MINIMIZATION = 'MINIMIZATION'
     NVT = 'NVT'
@@ -64,6 +64,9 @@ class Fields:
     # The Stage Name
     stage_name = OEField('Stage_name_OPLMD', Types.String)
 
+    # The Stage Type
+    stage_type = OEField('Stage_type_OPLMD', Types.String)
+
     # Topology Field
     topology = OEField('Topology_OPLMD', Types.Chem.Mol, meta=OEFieldMeta().set_option(Meta.Hints.Chem.PrimaryMol))
 
@@ -81,6 +84,10 @@ class Fields:
         trajectory = OEField("Trajectory_OPLMD", TypesCR.Orion.File)
     else:
         trajectory = OEField("Trajectory_OPLMD", Types.String)
+
+    # This Field is introduced to deal with record trajectory field
+    # that are linked to Orion S3 storage but they are locally used
+    orion_local_trj_field = OEField("Trajectory_OPLMD", TypesCR.Orion.File)
 
     # Stage list Field
     md_stages = OEField("MDStages_OPLMD", Types.RecordVec)
@@ -106,9 +113,10 @@ class MDRecords:
 
     class MDStageRecord(OERecord):
 
-        def __init__(self, name, system_record, log=None, trajectory=None):
+        def __init__(self, stage_name, stage_type, system_record, log=None, trajectory=None):
             super().__init__()
-            self.set_value(Fields.stage_name, name)
+            self.set_value(Fields.stage_name, stage_name)
+            self.set_value(Fields.stage_type, stage_type)
             self.set_value(Fields.md_system, system_record)
             if log is not None:
                 self.set_value(Fields.log_data, log)

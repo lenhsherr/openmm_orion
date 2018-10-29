@@ -85,18 +85,25 @@ class TrajToOEMolCube(ParallelMixin, OERecordComputeCube):
             # Extract and verify the traj filename for the last MD stage
             md_stageLast_record = md_stages[-1]
 
-            lastName = utl.RequestOEFieldType(md_stageLast_record, Fields.stage_name)
+            lastName = utl.RequestOEFieldType(md_stageLast_record, Fields.stage_type)
 
             if lastName != 'NPT':
                 raise ValueError('Cannot find the NPT stage')
 
             with TemporaryDirectory() as output_directory:
 
-                trajID = utl.RequestOEFieldType(md_stageLast_record, Fields.trajectory)
+                opt['Logger'].info('Temp Directory: {}'.format(output_directory))
 
-                if trajID is None:
-                    opt['Logger'].info('Trajectory not found!')
-                    raise ValueError('{} Trajectory not found!'.format(system_title))
+                if md_stageLast_record.has_value(Fields.trajectory):
+                    trajID = md_stageLast_record.get_value(Fields.trajectory)
+
+                elif md_stageLast_record.has_value(Fields.orion_local_trj_field):
+                    opt['Logger'].info("Orion S3 Trajectory Field Detected")
+                    trajID = md_stageLast_record.get_value(Fields.orion_local_trj_field)
+
+                else:
+                    raise ValueError("No trajectory have been found in the selected stage record {}".format(
+                        md_stageLast_record.get_value(Fields.stage_name)))
 
                 trj_selected_filename = os.path.join(output_directory, "trajectory.h5")
 

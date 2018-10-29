@@ -10,6 +10,8 @@ from datarecord import (Types,
                         OEField,
                         OEWriteRecord)
 
+from datarecord.datarecord import RecordVecData, RecordData
+
 from cuberecord import Types as TypesCR
 
 import mdtraj as md
@@ -172,6 +174,7 @@ def logs_extraction(ctx, stgn):
 
             print("SYSTEM NAME = {}".format(fn))
             print("Stage name = {}".format(stage.get_value(Fields.stage_name)))
+            print("Stage type = {}".format(stage.get_value(Fields.stage_type)))
             if stage.has_value(Fields.log_data):
                 print(stage.get_value(Fields.log_data))
             else:
@@ -220,29 +223,46 @@ def info_extraction(ctx):
     def recursive_record(record, level=0):
 
         for field in record.get_fields():
-            if not issubclass(field.get_type(), Types.Record) or not issubclass(field.get_type(), Types.RecordVec):
-                blank = (level+1) * "       "
-                print("{} |".format(blank))
-                print("{} |".format(blank))
-                dis = "______"
+
+            field_type = field.get_type()
+
+            blank = "       "
+            print("{} |".format(blank * (level + 1)))
+            print("{} |".format(blank * (level + 1)))
+            dis = "______"
+
+            if not field_type == RecordData and not field_type == RecordVecData:
+
                 if (field.get_type() is Types.String or
-                   field.get_type() is Types.Int or
-                   field.get_type() is Types.Float):
-                        print("{} {} name = {} type = {} value = {}".format(blank, dis,
-                                                                            field.get_name(),
-                                                                            field.get_type(),
-                                                                            str(record.get_value(field))[0:30]))
+                        field.get_type() is Types.Int or
+                        field.get_type() is Types.Float):
+                    print("{} {} name = {} type = {} value = {}".format(blank * (level + 1), dis,
+                                                                        field.get_name(),
+                                                                        field.get_type(),
+                                                                        str(record.get_value(field))[0:15]))
                 else:
-                    print("{} {} name = {} type = {}".format(blank, dis,
+                    print("{} {} name = {} type = {}".format(blank * (level + 1), dis,
                                                              field.get_name(),
                                                              field.get_type()))
 
-            if issubclass(field.get_type(), Types.Record):
-                recursive_record(record.get_value(field), level+1)
-            elif issubclass(field.get_type(), Types.RecordVec):
+            elif field_type == RecordData:
+                print("{} {} RECORD".format(blank * (level + 1), dis))
+                recursive_record(record.get_value(field), level + 1)
+
+            elif field_type == RecordVecData:
                 vec = record.get_value(field)
-                for rec in vec:
-                    recursive_record(rec, level+1)
+                print("{} {} RECORD VECTOR containing {} records".format(blank * (level + 1), dis, len(vec)))
+                print("{} |".format(blank * (level + 2)))
+                print("{} |".format(blank * (level + 2)))
+
+                for idx in range(0, len(vec)):
+                    print("{} {} RECORD # {}".format(blank * (level + 2), dis, idx))
+                    recursive_record(vec[idx], level + 2)
+                    if idx != len(vec) - 1:
+                        print("{} |".format(blank * (level + 2)))
+                        print("{} |".format(blank * (level + 2)))
+            else:
+                raise ValueError("Field type error: {}".format(field_type))
 
     for record in ctx.obj['records']:
         recursive_record(record, 0)

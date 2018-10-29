@@ -21,13 +21,9 @@ from floe.api import ParallelMixin, parameter
 
 from cuberecord import OERecordComputeCube
 
-from cuberecord.ports import  RecordOutputPort
-
 from oeommtools import utils as oeommutils
 
 from Standards import Fields
-
-from floe.constants import ADVANCED
 
 from openeye import oechem
 
@@ -145,9 +141,7 @@ class LigandSetting(OERecordComputeCube):
     # Ligand Residue Name
     lig_res_name = parameter.StringParameter('lig_res_name',
                                              default='LIG',
-                                             required=True,
-                                             help_text='The ligand residue name',
-                                             level=ADVANCED)
+                                             help_text='The ligand residue name')
 
     def begin(self):
         self.opt = vars(self.args)
