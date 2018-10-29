@@ -223,7 +223,7 @@ class YankSolvationFECube(ParallelMixin, OERecordComputeCube):
             self.log.info("[{}] new_iterations {}".format(self.title, opt['new_iterations']))
             self.log.info("[{}] checkpoint_interval {}".format(self.title, opt['checkpoint_interval']))
 
-            prot_split, lig_split, water, excipients = oeommutils.split(system, ligand_res_name=opt['ligand_res_name'])
+            prot_split, lig_split, water, excipients = oeommutils.split(system, ligand_res_name=opt['lig_res_name'])
 
             fchg_lig = 0
             for at in lig_split.GetAtoms():
@@ -719,8 +719,8 @@ class YankBindingFECube(ParallelMixin, OERecordComputeCube):
 
             # Split the complex in components
             protein_split, ligand_split, water, excipients = oeommutils.split(complex,
-                                                                              ligand_res_name=self.opt[
-                                                                                  'ligand_resname'])
+                                                                              ligand_res_name=self.opt['lig_res_name'])
+
             fchg_lig = 0
             for at in ligand_split.GetAtoms():
                 fchg_lig += at.GetFormalCharge()

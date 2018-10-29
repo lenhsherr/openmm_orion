@@ -313,7 +313,7 @@ def applyffLigand(ligand, opt):
     # Parametrize the Ligand
     pmd = ff_utils.ParamLigStructure(ligand, opt['ligand_forcefield'], prefix_name=opt['prefix_name'])
     ligand_structure = pmd.parameterize()
-    ligand_structure.residues[0].name = opt['ligand_res_name']
+    ligand_structure.residues[0].name = opt['lig_res_name']
     opt['Logger'].info("[{}] Ligand parametrized by using: {}".format(opt['CubeTitle'],
                                                                       opt['ligand_forcefield']))
 

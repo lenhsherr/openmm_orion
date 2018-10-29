@@ -116,7 +116,7 @@ class ForceFieldCube(ParallelMixin, OERecordComputeCube):
                 system_title = record.get_value(Fields.title)
 
             # Split the complex in components in order to apply the FF
-            protein, ligand, water, excipients = oeommutils.split(system, ligand_res_name=opt['ligand_res_name'])
+            protein, ligand, water, excipients = oeommutils.split(system, ligand_res_name=opt['lig_res_name'])
 
             self.log.info("[{}] \nComplex name: {}\nProtein atom numbers = {}\nLigand atom numbers = {}\n"
                           "Water atom numbers = {}\nExcipients atom numbers = {}".format(opt['CubeTitle'],

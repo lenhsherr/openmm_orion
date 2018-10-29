@@ -80,7 +80,7 @@ def clean(ctx):
     shutil.rmtree(".pytest_cache", ignore_errors=True)
 
 @task
-def newversion(ctx, new_version):
+def setversion(ctx, new_version):
     fn = os.path.join("./MDOrion", "__init__.py")
 
     with open(fn, "r") as f:
