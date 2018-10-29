@@ -99,7 +99,7 @@ def yank_binding_initialize(sim):
             complex_xml_fn=opt['solvated_complex_omm_serialized_fn'],
             solvent_pdb_fn=opt['solvated_ligand_structure_fn'],
             solvent_xml_fn=opt['solvated_ligand_omm_serialized_fn'],
-            ligand_resname=opt['ligand_resname'],
+            ligand_resname=opt['lig_res_name'],
             solvent_dsl=opt['solvent_str_names'],
             sampler=opt['sampler'],
             restraints=opt['restraints'],
