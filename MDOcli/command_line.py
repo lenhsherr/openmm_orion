@@ -18,9 +18,9 @@ import mdtraj as md
 
 import os
 
-from orionclient.session import (OrionSession,
-                                 get_profile_config,
-                                 get_session)
+# from orionclient.session import (OrionSession,
+#                                  get_profile_config,
+#                                  get_session)
 
 
 @click.group(
@@ -64,6 +64,7 @@ def dataset(ctx, filename, id, profile=None, max_retries=2):
     # TODO
     # if profile == "default" and os.environ.get("ORION_PROFILE") is not None:
     #     profile = os.environ["ORION_PROFILE"]
+    #
     # profile_config = get_profile_config(profile=profile)
     #
     # ctx.obj['profile'] = profile
@@ -122,7 +123,9 @@ def trajectory_extraction(ctx, format, stgn, fixname):
                 fnt = stage.get_value(Fields.trajectory)
 
             elif stage.has_value(orion_trj_field):
+
                 trj_id = stage.get_value(orion_trj_field)
+
                 suffix = ''
                 if stage.has_value(Fields.log_data):
                     log = stage.get_value(Fields.log_data)
@@ -132,8 +135,6 @@ def trajectory_extraction(ctx, format, stgn, fixname):
                             suffix = log_split[i+2]
                             break
                 fnt = fn + '-' + suffix + '.' + format
-
-                # from orionclient import File
 
                 # TODO Profile
                 trj_id.download_to_file(fnt)
