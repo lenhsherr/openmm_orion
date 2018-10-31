@@ -39,5 +39,5 @@
     "name": "MD Orion Package",
     "python_version": "3.5",
     "requirements": "requirements_dev.txt",
-    "version": "0.7.12b0"
+    "version": "0.7.12b1"
 }

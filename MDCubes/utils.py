@@ -140,23 +140,28 @@ def upload_file(filename, orion_name):
         if job_id:
             session.tag_resource(file_upload, "Job {}".format(job_id))
 
-    else:
-        file_upload = filename
+        file_id = file_upload.id
 
-    return file_upload
+    else:
+        file_id = filename
+
+    return file_id
 
 
 def download_file(file_id, filename, delete=False):
 
-    if in_orion() or isinstance(file_id, File):
-        file_id.download_to_file(filename)
+    if in_orion() or isinstance(file_id, int):
+
+        session = OrionSession()
+
+        resource = session.get_resource(File, file_id)
+
+        resource.download_to_file(filename)
 
         fn_local = filename
 
         if delete:
-            session = OrionSession()
-            session.delete_resource(file_id)
-
+            session.delete_resource(resource)
     else:
         fn_local = file_id
 

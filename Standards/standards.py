@@ -27,8 +27,6 @@ from datarecord import (Types,
                         OEField,
                         OERecord)
 
-from cuberecord import Types as TypesCR
-
 
 # ------------ Stage Standard Names ------------- #
 
@@ -81,13 +79,13 @@ class Fields:
 
     # Trajectory
     if in_orion():
-        trajectory = OEField("Trajectory_OPLMD", TypesCR.Orion.File)
+        trajectory = OEField("Trajectory_OPLMD", Types.Int)
     else:
         trajectory = OEField("Trajectory_OPLMD", Types.String)
 
     # This Field is introduced to deal with record trajectory field
     # that are linked to Orion S3 storage but they are locally used
-    orion_local_trj_field = OEField("Trajectory_OPLMD", TypesCR.Orion.File)
+    orion_local_trj_field = OEField("Trajectory_OPLMD", Types.Int)
 
     # Stage list Field
     md_stages = OEField("MDStages_OPLMD", Types.RecordVec)

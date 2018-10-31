@@ -7,20 +7,19 @@ from datarecord import read_mol_record
 from Standards import Fields
 
 from datarecord import (Types,
-                        OEField,
                         OEWriteRecord)
 
 from datarecord.datarecord import RecordVecData, RecordData
 
-from cuberecord import Types as TypesCR
+from orionclient.types import File
 
 import mdtraj as md
 
 import os
 
-# from orionclient.session import (OrionSession,
-#                                  get_profile_config,
-#                                  get_session)
+from orionclient.session import (OrionSession,
+                                 get_profile_config,
+                                 get_session)
 
 
 @click.group(
@@ -62,22 +61,22 @@ def dataset(ctx, filename, id, profile=None, max_retries=2):
         else:
             raise ValueError("Wrong record number selection: {} > max = {}".format(int(id), len(records)))
     # TODO
-    # if profile == "default" and os.environ.get("ORION_PROFILE") is not None:
-    #     profile = os.environ["ORION_PROFILE"]
-    #
-    # profile_config = get_profile_config(profile=profile)
-    #
-    # ctx.obj['profile'] = profile
-    # ctx.obj['session'] = OrionSession(
-    #         config=profile_config,
-    #         requests_session=get_session({404: max_retries}))
-    #
-    # ctx.obj['credentials'] = profile_config
-    #
-    # if ctx.obj["credentials"] is not None:
-    #     ctx.obj['session'].config = ctx.obj["credentials"]
-    # else:
-    #     click.secho("Unable to find credentials", fg='red', err=True)
+    if profile == "default" and os.environ.get("ORION_PROFILE") is not None:
+        profile = os.environ["ORION_PROFILE"]
+
+    profile_config = get_profile_config(profile=profile)
+
+    ctx.obj['profile'] = profile
+    ctx.obj['session'] = OrionSession(
+            config=profile_config,
+            requests_session=get_session({404: max_retries}))
+
+    ctx.obj['credentials'] = profile_config
+
+    if ctx.obj["credentials"] is not None:
+        ctx.obj['session'].config = ctx.obj["credentials"]
+    else:
+        click.secho("Unable to find credentials", fg='red', err=True)
 
 
 @dataset.command("trajectory")
@@ -89,8 +88,6 @@ def trajectory_extraction(ctx, format, stgn, fixname):
     stagen = stgn
 
     new_record_list = []
-
-    orion_trj_field = OEField("Trajectory_OPLMD", TypesCR.Orion.File)
 
     for record in ctx.obj['records']:
 
@@ -122,9 +119,9 @@ def trajectory_extraction(ctx, format, stgn, fixname):
             if stage.has_value(Fields.trajectory):
                 fnt = stage.get_value(Fields.trajectory)
 
-            elif stage.has_value(orion_trj_field):
+            elif stage.has_value(Fields.orion_local_trj_field):
 
-                trj_id = stage.get_value(orion_trj_field)
+                trj_id = stage.get_value(Fields.orion_local_trj_field)
 
                 suffix = ''
                 if stage.has_value(Fields.log_data):
@@ -136,8 +133,10 @@ def trajectory_extraction(ctx, format, stgn, fixname):
                             break
                 fnt = fn + '-' + suffix + '.' + format
 
-                # TODO Profile
-                trj_id.download_to_file(fnt)
+                resource = ctx.obj['session'].get_resource(File, trj_id)
+
+                resource.download_to_file(fnt)
+
             else:
                 print("No MD trajectory found in the selected stage record {}".format(stage.get_value(Fields.stage_name)))
                 continue
@@ -287,5 +286,7 @@ def info_extraction(ctx):
             else:
                 raise ValueError("Field type error: {}".format(field_type))
 
-    for record in ctx.obj['records']:
-        recursive_record(record, 0)
+    for idx in range(0, len(ctx.obj['records'])):
+        print(30 * "*" + " RECORD {}/{} ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*")
+        recursive_record(ctx.obj['records'][idx], 0)
+        print("\n" + 30 * "*" + " END RECORD ".format(idx + 1, len(ctx.obj['records'])) + 30 * "*" + "\n") 
